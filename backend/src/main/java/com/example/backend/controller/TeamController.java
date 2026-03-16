@@ -1,7 +1,9 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.GameweekStatsResponse;
 import com.example.backend.dto.PlayerSummary;
 import com.example.backend.dto.TeamResponse;
+import com.example.backend.dto.TransferRequest;
 import com.example.backend.model.UserTeam;
 import com.example.backend.model.UserTeamPlayer;
 import com.example.backend.security.SecurityUtils;
@@ -50,11 +52,34 @@ public class TeamController {
         return ResponseEntity.ok(toResponse(team));
     }
 
+    @PostMapping("/save")
+    @Operation(summary = "Save a completely new 15-player squad")
+    public ResponseEntity<TeamResponse> saveTeam(@RequestBody List<Long> playerIds) {
+        Long userId = securityUtils.getCurrentUserId();
+        UserTeam team = teamManagementService.saveFullSquad(userId, playerIds);
+        return ResponseEntity.ok(toResponse(team));
+    }
+
+    @PostMapping("/transfers")
+    @Operation(summary = "Make transfers on an existing squad (with point deduction)")
+    public ResponseEntity<TeamResponse> saveTransfers(@RequestBody TransferRequest request) {
+        Long userId = securityUtils.getCurrentUserId();
+        UserTeam team = teamManagementService.saveTransfers(userId, request.getPlayerIds(), request.getCost());
+        return ResponseEntity.ok(toResponse(team));
+    }
+
     @GetMapping("/stats")
     @Operation(summary = "Get squad statistics (positions, budget, points)")
     public ResponseEntity<TeamManagementService.SquadStatistics> getStats() {
         Long userId = securityUtils.getCurrentUserId();
         return ResponseEntity.ok(teamManagementService.getSquadStatistics(userId));
+    }
+
+    @GetMapping("/gameweek/{gameweek}")
+    @Operation(summary = "Get gameweek specific squad score and global max points")
+    public ResponseEntity<GameweekStatsResponse> getGameweekStats(@PathVariable int gameweek) {
+        Long userId = securityUtils.getCurrentUserId();
+        return ResponseEntity.ok(teamManagementService.getGameweekStats(userId, gameweek));
     }
 
     private TeamResponse toResponse(UserTeam team) {
