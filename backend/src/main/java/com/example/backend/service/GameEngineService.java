@@ -1,6 +1,10 @@
 package com.example.backend.service;
 
 import com.example.backend.service.DataInitializationService.*;
+import com.example.backend.repository.GameweekRepository;
+import com.example.backend.repository.MatchRepository;
+import com.example.backend.model.Match;
+import com.example.backend.model.Gameweek;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +17,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -24,6 +29,9 @@ public class GameEngineService {
     private final ScoringService scoringService;
     private final CommentaryService commentaryService;
     private final ObjectMapper objectMapper;
+    private final MatchRepository matchRepository;
+    private final GameweekRepository gameweekRepository;
+    private final SimulatedClockService clockService;
 
     // Game state
     private List<MatchJsonDTO> allMatches;
@@ -51,9 +59,6 @@ public class GameEngineService {
                 });
     }
 
-    /**
-     * Scheduled task that runs every 5 seconds (simulates 1 match minute)
-     */
     @Scheduled(fixedRate = 5000)
     public void simulateMatchMinute() {
         if (!engineRunning || allMatches == null || allMatches.isEmpty()) {
@@ -198,12 +203,40 @@ public class GameEngineService {
             scoringService.processCleanSheet(match.getAwayTeam(), match.getGameweek());
         }
 
+        // Process Minutes Played (Appearance Points)
+        if (match.getLineups() != null) {
+            log.info("📊 Processing minutes played for {}", match.getHomeTeam());
+            processLineupMinutes(match.getLineups().getHome(), match.getHomeTeam(), match.getGameweek());
+
+            log.info("📊 Processing minutes played for {}", match.getAwayTeam());
+            processLineupMinutes(match.getLineups().getAway(), match.getAwayTeam(), match.getGameweek());
+        }
+
         // Move to next match
         currentMatchIndex.incrementAndGet();
         matchInProgress = false;
         currentMinute.set(0);
 
         log.info("✅ Match completed. Moving to next match...\n");
+    }
+
+    private void processLineupMinutes(LineupJsonDTO lineup, String team, int gameweek) {
+        if (lineup == null)
+            return;
+
+        processPlayerMinutes(lineup.getStarting(), team, gameweek);
+        processPlayerMinutes(lineup.getSubstitutesIn(), team, gameweek);
+        processPlayerMinutes(lineup.getBenchUnused(), team, gameweek);
+    }
+
+    private void processPlayerMinutes(List<PlayerJsonDTO> players, String team, int gameweek) {
+        if (players == null)
+            return;
+        for (PlayerJsonDTO p : players) {
+            if (p.getMinutes() != null && p.getMinutes() > 0) {
+                scoringService.processMinutesPlayed(p.getName(), team, gameweek, p.getMinutes());
+            }
+        }
     }
 
     // Control methods
@@ -231,10 +264,13 @@ public class GameEngineService {
     }
 
     public GameState getGameState() {
+        boolean isGameweekActive = calculateGameweekActive(currentGameweek.get());
+
         if (allMatches == null || currentMatchIndex.get() >= allMatches.size()) {
             return new GameState(
                     engineRunning,
                     matchInProgress,
+                    isGameweekActive,
                     currentGameweek.get(),
                     currentMatchIndex.get(),
                     currentMinute.get(),
@@ -248,6 +284,7 @@ public class GameEngineService {
         return new GameState(
                 engineRunning,
                 matchInProgress,
+                isGameweekActive,
                 currentGameweek.get(),
                 currentMatchIndex.get(),
                 currentMinute.get(),
@@ -257,9 +294,46 @@ public class GameEngineService {
                 currentMatch.getAwayScore());
     }
 
+    /**
+     * Helper to compute true active status from DB matches
+     */
+    private boolean calculateGameweekActive(int gameweekNum) {
+        Optional<Gameweek> gwOpt = gameweekRepository.findByGameweekNumber(gameweekNum);
+        if (gwOpt.isEmpty()) {
+            return false;
+        }
+
+        List<Match> matches = matchRepository.findByGameweekId(gwOpt.get().getId());
+        if (matches.isEmpty()) {
+            return false;
+        }
+
+        // If any match is LIVE or SCHEDULED, the gameweek is considered "active"
+        // (transfers locked)
+        // Only when all matches are FINISHED does it become false (transfers open)
+        for (Match m : matches) {
+            String status = clockService.computeStatus(m.getKickoffTime(), m.getFinished());
+            if ("LIVE".equals(status) || "SCHEDULED".equals(status)) {
+                return true;
+            }
+        }
+
+        // Return false to indicate the round is totally complete and window is open
+        return false;
+    }
+
+    /**
+     * Convenience check used by TeamManagementService to enforce the transfer
+     * window.
+     */
+    public boolean isGameweekActive() {
+        return calculateGameweekActive(currentGameweek.get());
+    }
+
     public record GameState(
             boolean engineRunning,
             boolean matchInProgress,
+            boolean gameweekActive,
             int currentGameweek,
             int currentMatchIndex,
             int currentMinute,
