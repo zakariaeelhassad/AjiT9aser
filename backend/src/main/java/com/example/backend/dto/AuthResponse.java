@@ -1,8 +1,5 @@
 package com.example.backend.dto;
 
-/**
- * DTO for authentication response with JWT token
- */
 public record AuthResponse(
         String token,
         String type,
