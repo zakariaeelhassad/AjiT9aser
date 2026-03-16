@@ -6,12 +6,6 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-/**
- * DTO for creating a fantasy team
- * Business Rules:
- * - Exactly 15 players required
- * - Total cost must not exceed 100.0
- */
 public record TeamCreateRequest(
         @NotBlank(message = "Team name is required") @Size(max = 100, message = "Team name must not exceed 100 characters") String teamName,
 
