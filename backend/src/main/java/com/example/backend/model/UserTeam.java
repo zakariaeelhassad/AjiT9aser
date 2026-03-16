@@ -45,23 +45,14 @@ public class UserTeam {
     @Builder.Default
     private List<UserTeamPlayer> teamPlayers = new ArrayList<>();
 
-    /**
-     * Business Rule: Squad must have exactly 15 players
-     */
     public boolean isValidSquadSize() {
         return teamPlayers.size() == 15;
     }
 
-    /**
-     * Business Rule: Total cost must not exceed budget (100.0)
-     */
     public boolean isWithinBudget() {
         return remainingBudget.compareTo(BigDecimal.ZERO) >= 0;
     }
 
-    /**
-     * Calculate total squad cost
-     */
     public BigDecimal calculateTotalCost() {
         return teamPlayers.stream()
                 .map(UserTeamPlayer::getPurchasePrice)
