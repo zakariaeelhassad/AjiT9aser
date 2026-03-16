@@ -36,9 +36,10 @@ public class UserTeamPlayer {
     @Builder.Default
     private LocalDateTime selectedAt = LocalDateTime.now();
 
-    /**
-     * Composite unique constraint: one player can only be in a team once
-     */
+    @Column(columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean starter = true;
+
     @Table(uniqueConstraints = {
             @UniqueConstraint(columnNames = { "team_id", "player_id" })
     })
