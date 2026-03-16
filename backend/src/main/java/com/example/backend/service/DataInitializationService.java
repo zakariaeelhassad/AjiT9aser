@@ -62,9 +62,7 @@ public class DataInitializationService implements CommandLineRunner {
         }
     }
 
-    // ============================================================
     // PLAYERS
-    // ============================================================
     private void loadPlayers(List<MatchJsonDTO> matches) {
         log.info("Loading players...");
         Map<String, PlayerData> uniquePlayers = new HashMap<>();
@@ -90,9 +88,7 @@ public class DataInitializationService implements CommandLineRunner {
         log.info("Saved {} players", players.size());
     }
 
-    // ============================================================
     // GAMEWEEKS + MATCHES
-    // ============================================================
     private void loadGameweeksAndMatches(List<MatchJsonDTO> matchJsonList) {
         log.info("Loading gameweeks and matches...");
 
@@ -144,9 +140,7 @@ public class DataInitializationService implements CommandLineRunner {
         log.info("Loaded {} gameweeks and {} matches", byGw.size(), matchJsonList.size());
     }
 
-    // ============================================================
     // HELPERS
-    // ============================================================
     private void extractPlayersFromLineup(LineupJsonDTO lineup, String teamName,
             Map<String, PlayerData> uniquePlayers) {
         if (lineup == null)
@@ -190,7 +184,7 @@ public class DataInitializationService implements CommandLineRunner {
         return BigDecimal.valueOf(Math.round(basePrice * 10.0) / 10.0);
     }
 
-    // ===== Inner DTO Classes for JSON Parsing =====
+    // Inner DTO Classes for JSON Parsing
 
     @Data
     public static class MatchJsonDTO {
