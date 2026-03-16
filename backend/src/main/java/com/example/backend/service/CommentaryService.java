@@ -4,14 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * Commentary Service - Generates match commentary
- * 
- * NOTE: Spring AI integration is temporarily disabled due to API compatibility
- * issues.
- * Currently using fallback Moroccan Darija commentary.
- * To enable AI: Add proper Spring AI dependencies and uncomment AI code.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
