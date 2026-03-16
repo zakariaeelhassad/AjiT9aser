@@ -47,10 +47,6 @@ public class Player {
     @Builder.Default
     private List<UserTeamPlayer> userTeams = new ArrayList<>();
 
-    /**
-     * Calculate points for a goal based on player position
-     * FWD: +4, MID: +5, DEF/GK: +6
-     */
     public int getGoalPoints() {
         return switch (position) {
             case FWD -> 4;
