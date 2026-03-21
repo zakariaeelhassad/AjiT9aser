@@ -25,6 +25,10 @@
         Team Selection
       </a>
       @if (teamComplete) {
+      <a routerLink="/substitutions" routerLinkActive="text-sky-400 bg-white/[0.06]"
+        class="px-4 py-2 text-slate-400 text-sm font-medium rounded-lg transition-all hover:text-slate-100 hover:bg-white/[0.05] no-underline">
+        Substitutions
+      </a>
       <a routerLink="/points" routerLinkActive="text-sky-400 bg-white/[0.06]"
         class="px-4 py-2 text-slate-400 text-sm font-medium rounded-lg transition-all hover:text-slate-100 hover:bg-white/[0.05] no-underline">
         Points
@@ -67,6 +71,7 @@
     <a routerLink="/dashboard" (click)="menuOpen=false" class="mob-link no-underline">Dashboard</a>
     <a routerLink="/team-selection" (click)="menuOpen=false" class="mob-link no-underline">Team Selection</a>
     @if (teamComplete) {
+    <a routerLink="/substitutions" (click)="menuOpen=false" class="mob-link no-underline">Substitutions</a>
     <a routerLink="/points" (click)="menuOpen=false" class="mob-link no-underline">Points</a>
     }
     <button (click)="logout(); menuOpen=false"
