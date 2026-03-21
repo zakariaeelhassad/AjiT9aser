@@ -16,6 +16,9 @@ import com.example.backend.repository.UserTeamPlayerRepository;
 import com.example.backend.repository.UserTeamRepository;
 import com.example.backend.dto.GameweekStatsResponse;
 import com.example.backend.dto.GameweekStatsResponse.PlayerGameweekScore;
+import com.example.backend.dto.LineupPlayerMeta;
+import com.example.backend.dto.TeamLineupPlayerResponse;
+import com.example.backend.dto.TeamLineupResponse;
 import com.example.backend.model.PlayerGameweekStats;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +26,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +42,7 @@ public class TeamManagementService {
         private final PlayerRepository playerRepository;
         private final UserRepository userRepository;
         private final UserTeamPlayerRepository userTeamPlayerRepository;
-        private final GameEngineService gameEngineService;
+        private final TransferWindowService transferWindowService;
         private final PlayerGameweekStatsRepository statsRepository;
 
         private static final int MAX_SQUAD_SIZE = 15;
@@ -154,6 +160,8 @@ public class TeamManagementService {
         public UserTeam saveFullSquad(Long userId, List<Long> playerIds) {
                 log.info("Saving full squad for user {}", userId);
 
+                ensureTransferWindowOpen();
+
                 if (playerIds == null || playerIds.size() != MAX_SQUAD_SIZE) {
                         throw new InvalidTransferException(
                                         "A complete squad must have exactly " + MAX_SQUAD_SIZE + " players.");
@@ -240,11 +248,7 @@ public class TeamManagementService {
         public UserTeam saveTransfers(Long userId, List<Long> playerIds, int transferCost) {
                 log.info("Saving transfers for user {} with cost {} pts", userId, transferCost);
 
-                // 🔒 Transfer Window Check — block if gameweek is currently active
-                if (gameEngineService.isGameweekActive()) {
-                        throw new InvalidTransferException(
-                                        "The gameweek has already started. Transfers are locked until all matches finish.");
-                }
+                ensureTransferWindowOpen();
 
                 // Reuse the full squad save logic (validates 15 players, budget, positions,
                 // team limits)
@@ -258,6 +262,157 @@ public class TeamManagementService {
                 log.info("Transfer cost of {} pts deducted. Points updated from {} to {}", transferCost, currentPoints,
                                 newPoints);
                 return userTeamRepository.save(updatedTeam);
+        }
+
+        @Transactional(readOnly = true)
+        public TeamLineupResponse getTeamLineup(Long userId) {
+                UserTeam userTeam = getDetailedTeam(userId);
+                return toLineupResponse(userTeam);
+        }
+
+        @Transactional
+        public TeamLineupResponse makeSubstitution(Long userId, Long starterPlayerId, Long benchPlayerId) {
+                ensureTransferWindowOpen();
+
+                if (starterPlayerId == null || benchPlayerId == null) {
+                        throw new InvalidTransferException("Both starter and bench players are required.");
+                }
+
+                if (starterPlayerId.equals(benchPlayerId)) {
+                        throw new InvalidTransferException("Starter and bench player must be different.");
+                }
+
+                UserTeam userTeam = getDetailedTeam(userId);
+
+                UserTeamPlayer starter = userTeam.getTeamPlayers().stream()
+                                .filter(tp -> tp.getPlayer().getId().equals(starterPlayerId))
+                                .findFirst()
+                                .orElseThrow(() -> new InvalidTransferException("Starter player is not in your squad."));
+
+                UserTeamPlayer bench = userTeam.getTeamPlayers().stream()
+                                .filter(tp -> tp.getPlayer().getId().equals(benchPlayerId))
+                                .findFirst()
+                                .orElseThrow(() -> new InvalidTransferException("Bench player is not in your squad."));
+
+                if (!starter.isStarter()) {
+                        throw new InvalidTransferException("Selected starter player is currently on the bench.");
+                }
+
+                if (bench.isStarter()) {
+                        throw new InvalidTransferException("Selected bench player is currently in the starting lineup.");
+                }
+
+                if (starter.getPlayer().getPosition() != bench.getPlayer().getPosition()) {
+                        throw new InvalidTransferException("Substitutions are only allowed between players of the same position.");
+                }
+
+                starter.setStarter(false);
+                bench.setStarter(true);
+
+                userTeamRepository.save(userTeam);
+                return toLineupResponse(userTeam);
+        }
+
+        @Transactional
+        public void saveLineup(Long userId, List<Long> starterPlayerIds) {
+                ensureTransferWindowOpen();
+
+                if (starterPlayerIds == null || starterPlayerIds.size() != 11) {
+                        throw new InvalidTransferException("Starting lineup must contain exactly 11 players.");
+                }
+
+                Set<Long> uniqueStarterIds = new HashSet<>(starterPlayerIds);
+                if (uniqueStarterIds.size() != 11) {
+                        throw new InvalidTransferException("Starting lineup contains duplicate players.");
+                }
+
+                Long teamId = userTeamRepository.findTeamIdByUserId(userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("User team not found"));
+
+                List<LineupPlayerMeta> lineupMeta = userTeamPlayerRepository.findLineupMetaByTeamId(teamId);
+                if (lineupMeta.size() != MAX_SQUAD_SIZE) {
+                        throw new InvalidTransferException("A complete 15-player squad is required before saving lineup.");
+                }
+
+                Set<Long> squadPlayerIds = lineupMeta.stream()
+                                .map(LineupPlayerMeta::playerId)
+                                .collect(Collectors.toSet());
+
+                if (!squadPlayerIds.containsAll(uniqueStarterIds)) {
+                        throw new InvalidTransferException("One or more selected starters are not in your squad.");
+                }
+
+                int gkCount = 0;
+                int defCount = 0;
+                int fwdCount = 0;
+
+                for (LineupPlayerMeta meta : lineupMeta) {
+                        if (!uniqueStarterIds.contains(meta.playerId())) {
+                                continue;
+                        }
+                        if (meta.position() == Position.GK) {
+                                gkCount++;
+                        } else if (meta.position() == Position.DEF) {
+                                defCount++;
+                        } else if (meta.position() == Position.FWD) {
+                                fwdCount++;
+                        }
+                }
+
+                if (gkCount != 1) {
+                        throw new InvalidTransferException("Starting lineup must include exactly 1 goalkeeper.");
+                }
+
+                if (defCount < 3) {
+                        throw new InvalidTransferException("Starting lineup must include at least 3 defenders.");
+                }
+
+                if (fwdCount < 1) {
+                        throw new InvalidTransferException("Starting lineup must include at least 1 attacker.");
+                }
+
+                userTeamPlayerRepository.clearStartersByTeamId(teamId);
+                userTeamPlayerRepository.setStartersByTeamId(teamId, starterPlayerIds);
+        }
+
+        private UserTeam getDetailedTeam(Long userId) {
+                return userTeamRepository.findDetailedByUserId(userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("User team not found"));
+        }
+
+        private TeamLineupResponse toLineupResponse(UserTeam userTeam) {
+                List<TeamLineupPlayerResponse> players = userTeam.getTeamPlayers().stream()
+                                .sorted(Comparator
+                                                .comparing(UserTeamPlayer::isStarter).reversed()
+                                                .thenComparing(tp -> tp.getPlayer().getPosition().name())
+                                                .thenComparing(tp -> tp.getPlayer().getName()))
+                                .map(tp -> new TeamLineupPlayerResponse(
+                                                tp.getPlayer().getId(),
+                                                tp.getPlayer().getName(),
+                                                tp.getPlayer().getPosition(),
+                                                tp.getPlayer().getRealTeam(),
+                                                tp.getPlayer().getPrice(),
+                                                tp.getPlayer().getTotalPoints(),
+                                                tp.isStarter()))
+                                .toList();
+
+                return new TeamLineupResponse(
+                                userTeam.getId(),
+                                userTeam.getTeamName(),
+                                userTeam.getRemainingBudget(),
+                                players);
+        }
+
+        private void ensureTransferWindowOpen() {
+                TransferWindowService.TransferWindowStatus status = transferWindowService.getTransferWindowStatus();
+                if (!status.transfersAllowed()) {
+                        if (status.activeGameweek() != null) {
+                                throw new InvalidTransferException(
+                                                "Transfers are locked. We are currently in Gameweek "
+                                                                + status.activeGameweek() + ".");
+                        }
+                        throw new InvalidTransferException("Transfers are currently locked.");
+                }
         }
 
         @Transactional(readOnly = true)
