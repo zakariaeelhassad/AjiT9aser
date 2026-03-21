@@ -1,10 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { ApiService, PlayerSummary, GameState } from '../../core/services/api.service';
+import { ApiService, PlayerSummary, TransferWindowStatus } from '../../core/services/api.service';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { catchError, finalize, interval, of, startWith, Subscription, switchMap } from 'rxjs';
 
 export interface PitchSlot {
   id: number;
@@ -28,7 +28,7 @@ export interface PitchSlot {
     }
   `]
 })
-export class TeamSelectionComponent implements OnInit {
+export class TeamSelectionComponent implements OnInit, OnDestroy {
   budget: number = 100.0;
   playersSelected: number = 0;
   maxPlayers: number = 15;
@@ -80,24 +80,42 @@ export class TeamSelectionComponent implements OnInit {
   // Transfer Window Lock State
   gameweekLocked: boolean = false;
   loadingGameState: boolean = true;
+  transferWindowStatus: TransferWindowStatus | null = null;
+  nextDeadlineLabel: string = '';
+  private transferWindowSub?: Subscription;
+
+  // Filter State
+  filterView: 'all' | 'watchlist' = 'all';
+  sortBy: 'points' | 'price' | 'form' = 'points';
+  priceFilter: number | null = null;
+  selectedPosition: 'GK' | 'DEF' | 'MID' | 'FWD' | null = null;
+  selectedTeam: string | null = null;
+
+  // Unique teams list for filtering
+  uniqueTeams: string[] = [];
+  activeFilterPanel: 'global' | 'position' | 'teams' | null = null;
 
   constructor(private api: ApiService, private router: Router, private cdr: ChangeDetectorRef) { }
 
   ngOnInit(): void {
     console.log('TeamSelectionComponent: Initializing, checking for existing team...');
 
-    // Fetch game state first to determine if transfer window is open
-    this.api.getGameState().subscribe({
-      next: (gs: GameState) => {
-        this.currentGameweek = gs.currentGameweek;
-        this.gameweekLocked = gs.gameweekActive === true;
+    // Keep lock status aligned with backend time and DB gameweek dates.
+    this.transferWindowSub = interval(30000).pipe(
+      startWith(0),
+      switchMap(() => this.api.getTransferWindowStatus().pipe(catchError(() => of(null))))
+    ).subscribe((status) => {
+      if (!status) {
         this.loadingGameState = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.gameweekLocked = false; // Fail open if endpoint unreachable
-        this.loadingGameState = false;
+        return;
       }
+
+      this.transferWindowStatus = status;
+      this.gameweekLocked = !status.transfersAllowed;
+      this.currentGameweek = status.activeGameweek || status.nextGameweek || 0;
+      this.nextDeadlineLabel = this.formatDeadline(status.nextDeadline);
+      this.loadingGameState = false;
+      this.cdr.detectChanges();
     });
 
     this.api.getMyTeam().subscribe({
@@ -140,14 +158,18 @@ export class TeamSelectionComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.transferWindowSub?.unsubscribe();
+  }
+
   get gks() { return this.slots.filter(s => s.position === 'GK'); }
   get defs() { return this.slots.filter(s => s.position === 'DEF'); }
   get mids() { return this.slots.filter(s => s.position === 'MID'); }
   get fwds() { return this.slots.filter(s => s.position === 'FWD'); }
 
   openPlayerModal(slot: PitchSlot) {
-    if (this.gameweekLocked && this.hasExistingTeam) {
-      this.errorMessage = `Transfers are locked until Gameweek ${this.currentGameweek} finishes.`;
+    if (this.gameweekLocked) {
+      this.errorMessage = this.getLockMessage();
       return;
     }
     if (slot.player) return; // Slot is full
@@ -177,6 +199,7 @@ export class TeamSelectionComponent implements OnInit {
           this.loadingPlayers = false;
           console.log(`TeamSelectionComponent: Received ${players?.length || 0} players.`);
           this.availablePlayers = players || [];
+          this.buildUniqueTeams();
           this.currentPage = 1;
           this.filterPlayers();
           this.cdr.detectChanges();
@@ -196,10 +219,21 @@ export class TeamSelectionComponent implements OnInit {
     let filtered = [...this.availablePlayers];
     console.log(`TeamSelectionComponent: Starting filter. totalPlayers=${filtered.length}, activeFilter=${this.activePositionFilter}`);
 
-    // Filter by position if active
+    // Filter by position (from modal or filter selection)
     if (this.activePositionFilter) {
       filtered = filtered.filter(p => p.position === this.activePositionFilter);
-      console.log(`TeamSelectionComponent: After position filter (${this.activePositionFilter}): ${filtered.length}`);
+    } else if (this.selectedPosition) {
+      filtered = filtered.filter(p => p.position === this.selectedPosition);
+    }
+
+    // Filter by team if selected
+    if (this.selectedTeam) {
+      filtered = filtered.filter(p => p.realTeam === this.selectedTeam);
+    }
+
+    // Filter by price if set
+    if (this.priceFilter !== null) {
+      filtered = filtered.filter(p => p.price <= this.priceFilter!);
     }
 
     // Filter out already selected players
@@ -207,12 +241,23 @@ export class TeamSelectionComponent implements OnInit {
     filtered = filtered.filter(p => !selectedIds.includes(p.id));
     console.log(`TeamSelectionComponent: After excluding selected: ${filtered.length}`);
 
+    // Apply search query
     if (this.searchQuery.trim() !== '') {
       const q = this.searchQuery.toLowerCase();
       filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
       this.currentPage = 1;
       console.log(`TeamSelectionComponent: After search filter: ${filtered.length}`);
     }
+
+    // Sort players
+    filtered.sort((a, b) => {
+      if (this.sortBy === 'points') {
+        return b.totalPoints - a.totalPoints;
+      } else if (this.sortBy === 'price') {
+        return b.price - a.price;
+      }
+      return 0;
+    });
 
     this.filteredPlayers = filtered;
     this.totalPages = Math.ceil(this.filteredPlayers.length / this.pageSize) || 1;
@@ -222,6 +267,66 @@ export class TeamSelectionComponent implements OnInit {
     }
 
     this.updatePagination();
+  }
+
+  // Filter helper methods
+  toggleFilterPanel(panel: 'global' | 'position' | 'teams') {
+    this.activeFilterPanel = this.activeFilterPanel === panel ? null : panel;
+  }
+
+  setPositionFilter(position: 'GK' | 'DEF' | 'MID' | 'FWD' | null) {
+    this.selectedPosition = this.selectedPosition === position ? null : position;
+    this.currentPage = 1;
+    this.filterPlayers();
+    this.activeFilterPanel = null;
+    this.cdr.detectChanges();
+  }
+
+  setTeamFilter(team: string | null) {
+    this.selectedTeam = this.selectedTeam === team ? null : team;
+    this.currentPage = 1;
+    this.filterPlayers();
+    this.activeFilterPanel = null;
+    this.cdr.detectChanges();
+  }
+
+  setPriceFilter(price: number | null) {
+    this.priceFilter = price;
+    this.currentPage = 1;
+    this.filterPlayers();
+    this.cdr.detectChanges();
+  }
+
+  setSortBy(sort: 'points' | 'price' | 'form') {
+    this.sortBy = sort;
+    this.currentPage = 1;
+    this.filterPlayers();
+    this.cdr.detectChanges();
+  }
+
+  setFilterView(view: 'all' | 'watchlist') {
+    this.filterView = view;
+    this.currentPage = 1;
+    this.filterPlayers();
+    this.cdr.detectChanges();
+  }
+
+  resetFilters() {
+    this.filterView = 'all';
+    this.sortBy = 'points';
+    this.priceFilter = null;
+    this.selectedPosition = null;
+    this.selectedTeam = null;
+    this.activeFilterPanel = null;
+    this.searchQuery = '';
+    this.currentPage = 1;
+    this.fetchPlayers();
+  }
+
+  // Build unique teams list when players load
+  buildUniqueTeams() {
+    const teams = new Set(this.availablePlayers.map(p => p.realTeam));
+    this.uniqueTeams = Array.from(teams).sort();
   }
 
   updatePagination() {
@@ -290,7 +395,10 @@ export class TeamSelectionComponent implements OnInit {
 
   removePlayer(slot: PitchSlot, event?: Event) {
     if (event) event.stopPropagation();
-    if (this.gameweekLocked && this.hasExistingTeam) return; // Locked during active gameweek
+    if (this.gameweekLocked) {
+      this.errorMessage = this.getLockMessage();
+      return;
+    }
     if (!slot.player) return;
 
     this.budget = parseFloat((this.budget + slot.player.price).toFixed(1));
@@ -313,6 +421,11 @@ export class TeamSelectionComponent implements OnInit {
   }
 
   saveTeam() {
+    if (this.gameweekLocked) {
+      this.errorMessage = this.getLockMessage();
+      return;
+    }
+
     if (this.playersSelected < 15) return;
     this.saving = true;
     this.errorMessage = null;
@@ -388,7 +501,7 @@ export class TeamSelectionComponent implements OnInit {
 
   saveTransfers() {
     if (this.gameweekLocked) {
-      this.errorMessage = `You cannot save. Please wait until Gameweek ${this.currentGameweek} finishes.`;
+      this.errorMessage = this.getLockMessage();
       return;
     }
     if (this.playersSelected < 15) {
@@ -423,5 +536,40 @@ export class TeamSelectionComponent implements OnInit {
           this.errorMessage = err.error?.message || 'Failed to save transfers. Please try again.';
         }
       });
+  }
+
+  private getLockMessage(): string {
+    const activeGw = this.transferWindowStatus?.activeGameweek || this.currentGameweek;
+    if (activeGw) {
+      return `Transfers are locked. We are currently in Gameweek ${activeGw}.`;
+    }
+    return 'Transfers are currently locked.';
+  }
+
+  private formatDeadline(deadline: string | null): string {
+    if (!deadline) return '';
+
+    const date = new Date(deadline);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+
+    const sameDay = date.toDateString() === now.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    const timeLabel = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    if (sameDay) return `today at ${timeLabel}`;
+    if (isTomorrow) return `tomorrow at ${timeLabel}`;
+
+    return date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   }
 }
