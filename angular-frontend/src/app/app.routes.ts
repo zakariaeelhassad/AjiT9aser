@@ -30,5 +30,10 @@ export const routes: Routes = [
         canActivate: [authGuard],
         loadComponent: () => import('./pages/team-selection/team-selection.component').then(m => m.TeamSelectionComponent),
     },
+    {
+        path: 'substitutions',
+        canActivate: [authGuard, teamCompleteGuard],
+        loadComponent: () => import('./pages/substitutions/substitutions.component').then(m => m.SubstitutionsComponent),
+    },
     { path: '**', redirectTo: '' },
 ];
