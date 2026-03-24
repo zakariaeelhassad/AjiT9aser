@@ -25,6 +25,9 @@ public class UserTeam {
     @Column(nullable = false, length = 100)
     private String teamName;
 
+    @Column(columnDefinition = "TEXT")
+    private String teamImage;
+
     @Column(nullable = false, precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal budget = BigDecimal.valueOf(100.0);
