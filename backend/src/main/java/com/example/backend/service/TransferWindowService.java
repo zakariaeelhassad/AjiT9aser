@@ -1,6 +1,6 @@
 package com.example.backend.service;
 
-import com.example.backend.model.Gameweek;
+import com.example.backend.model.entity.Gameweek;
 import com.example.backend.repository.GameweekRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
