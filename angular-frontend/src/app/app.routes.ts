@@ -35,5 +35,10 @@ export const routes: Routes = [
         canActivate: [authGuard, teamCompleteGuard],
         loadComponent: () => import('./pages/substitutions/substitutions.component').then(m => m.SubstitutionsComponent),
     },
+    {
+        path: 'profile',
+        canActivate: [authGuard],
+        loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent),
+    },
     { path: '**', redirectTo: '' },
 ];
