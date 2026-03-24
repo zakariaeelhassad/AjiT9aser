@@ -28,13 +28,13 @@ public class GameController {
 
     @GetMapping("/state")
     @Operation(summary = "Get current game engine state")
-    public ResponseEntity<GameEngineService.GameState> getState() {
+    public ResponseEntity<com.example.backend.service.Impl.GameEngineService.GameState> getState() {
         return ResponseEntity.ok(gameEngineService.getGameState());
     }
 
     @GetMapping("/transfer-window")
     @Operation(summary = "Get transfer window status based on backend date and DB gameweek dates")
-    public ResponseEntity<TransferWindowService.TransferWindowStatus> getTransferWindowStatus() {
+    public ResponseEntity<com.example.backend.service.Impl.TransferWindowService.TransferWindowStatus> getTransferWindowStatus() {
         return ResponseEntity.ok(transferWindowService.getTransferWindowStatus());
     }
 
@@ -80,3 +80,4 @@ public class GameController {
         return ResponseEntity.ok(leaderboard);
     }
 }
+
