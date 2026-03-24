@@ -1,9 +1,9 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.MatchEventDTO;
-import com.example.backend.dto.MatchStatusResponse;
-import com.example.backend.model.Match;
-import com.example.backend.model.Gameweek;
+import com.example.backend.dto.match.MatchEventDTO;
+import com.example.backend.dto.match.MatchStatusResponse;
+import com.example.backend.model.entity.Match;
+import com.example.backend.model.entity.Gameweek;
 import com.example.backend.repository.GameweekRepository;
 import com.example.backend.repository.MatchRepository;
 import com.example.backend.service.MatchEventCacheService;
