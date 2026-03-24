@@ -17,6 +17,7 @@ import { ApiService } from '../../../core/services/api.service';
   `]
 })
 export class NavbarComponent implements OnInit {
+  private readonly backendBase = 'http://localhost:8080';
   menuOpen = false;
   teamComplete = false;
 
@@ -33,5 +34,21 @@ export class NavbarComponent implements OnInit {
 
   get isAuth(): boolean { return this.auth.isAuthenticated(); }
   get username(): string { return this.auth.getUser()?.username ?? 'U'; }
+  get profileImageSrc(): string | null {
+    const value = this.auth.getUser()?.profileImage ?? null;
+    if (!value) {
+      return null;
+    }
+    if (value.startsWith('data:image/')) {
+      return value;
+    }
+    if (value.startsWith('/')) {
+      return `${this.backendBase}${value}`;
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    return null;
+  }
   logout(): void { this.auth.logout(); }
 }
