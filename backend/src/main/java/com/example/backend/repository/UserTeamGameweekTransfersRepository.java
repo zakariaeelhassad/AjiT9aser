@@ -1,6 +1,6 @@
 package com.example.backend.repository;
 
-import com.example.backend.model.UserTeamGameweekTransfers;
+import com.example.backend.model.entity.UserTeamGameweekTransfers;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
