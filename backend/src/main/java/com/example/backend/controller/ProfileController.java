@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.ProfileResponse;
-import com.example.backend.dto.ProfileUpdateRequest;
+import com.example.backend.dto.profile.ProfileResponse;
+import com.example.backend.dto.profile.ProfileUpdateRequest;
 import com.example.backend.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
