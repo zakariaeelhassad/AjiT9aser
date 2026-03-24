@@ -1,14 +1,24 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { PlayerSummary, PlayerTransferStat, Deadline, PlayerAvailability } from '../../core/services/api.service';
+import {
+  PlayerSummary,
+  PlayerTransferStat,
+  Deadline,
+  PlayerAvailability,
+  DashboardStats,
+  TeamResponse,
+  TransferWindowStatus,
+  LeaderboardEntry
+} from '../../core/services/api.service';
 import { AuthService, UserResponse } from '../../core/services/auth.service';
 import { DashboardStateService } from '../../core/services/dashboard-state.service';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
-import { PlayerCardComponent } from '../../shared/components/player-card/player-card.component';
-import { Observable, Subscription, interval } from 'rxjs';
-import { map, startWith, switchMap } from 'rxjs/operators';
+import { getTeamJersey, getTeamLogo } from '../../shared/utils/team-visuals';
+import { ApiService } from '../../core/services/api.service';
+import { Subscription, interval, of } from 'rxjs';
+import { catchError, startWith, switchMap } from 'rxjs/operators';
 
 const POS_META: Record<string, { label: string; color: string; borderClass: string }> = {
   GK: { label: 'Goalkeeper', color: '#fbbf24', borderClass: 'border-amber-400' },
@@ -32,44 +42,30 @@ interface TeamComposition {
   fwd: number;
 }
 
-interface PerformanceMetric {
-  label: string;
-  value: number;
-  trend: 'up' | 'down' | 'neutral';
-  color: string;
-}
-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, NavbarComponent, FooterComponent],
   templateUrl: './dashboard.component.html',
   styles: [`
-    .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-    
-    .countdown-timer {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-    
+
     .countdown-digit {
       text-align: center;
-      padding: 0.75rem 0.5rem;
+      padding: 0.6rem 0.45rem;
       background: rgba(255,255,255,0.05);
       border-radius: 0.375rem;
       border: 1px solid rgba(255,255,255,0.1);
     }
-    
+
     .countdown-digit.low-time {
       background: rgba(239,68,68,0.1);
       border-color: rgba(239,68,68,0.3);
     }
-    
+
     .countdown-label {
       font-size: 0.625rem;
       font-weight: bold;
@@ -78,37 +74,7 @@ interface PerformanceMetric {
       color: rgb(100,116,139);
       margin-top: 0.25rem;
     }
-    
-    .stat-card {
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
-    
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-      transition: left 0.5s ease;
-    }
-    
-    .stat-card:hover::before {
-      left: 100%;
-    }
-    
-    .pulse-animation {
-      animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.8; }
-    }
-    
+
     .team-position-badge {
       display: inline-flex;
       align-items: center;
@@ -121,99 +87,110 @@ interface PerformanceMetric {
       margin-bottom: 0.375rem;
     }
 
-    .status-indicator {
-      display: inline-block;
-      width: 0.375rem;
-      height: 0.375rem;
-      border-radius: 50%;
-      margin-right: 0.5rem;
-      animation: status-pulse 2s infinite;
-    }
-    
-    .status-indicator.online {
-      background-color: #10b981;
-    }
-
-    @keyframes status-pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.6; }
-      100% { opacity: 1; }
-    }
-
-    .number-animate {
-      display: inline-block;
+    .stat-mini {
+      border: 1px solid rgba(148,163,184,0.2);
+      background: rgba(15,23,42,0.45);
+      border-radius: 0.9rem;
+      padding: 0.95rem;
     }
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   user: UserResponse | null = null;
+  team: TeamResponse | null = null;
+  dashboardStats: DashboardStats | null = null;
+  transferWindowStatus: TransferWindowStatus | null = null;
   posMeta = POS_META;
+  readonly totalPlayers = 13002458;
+  private readonly backendBase = 'http://localhost:8080';
 
-  // Countdown timer state
   countdownTime: CountdownTime = { days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
   isLowTime = false;
-
-  // Team composition
   teamComposition: TeamComposition = { gk: 0, def: 0, mid: 0, fwd: 0 };
   squadValue = 0;
-  
-  // Performance metrics
-  performanceMetrics: PerformanceMetric[] = [];
-  gameweekPointsDisplay = 0;
-  gameweekTransfersDisplay = 0;
-  overallRank = '—';
+  topOverallUserName = 'No data';
+  topOverallUserPoints = 0;
 
-  // Subscriptions
+  private stateSubscription?: Subscription;
   private countdownSubscription?: Subscription;
   private autoRefreshSubscription?: Subscription;
+  private transferWindowSubscription?: Subscription;
+  private leaderboardSubscription?: Subscription;
+  private serverNowAtFetchMs: number | null = null;
+  private serverNowFetchedAtClientMs: number | null = null;
 
   get nextDeadline(): Deadline | undefined {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.deadlines?.find((d: Deadline) => d.isNext);
+    return this.dashboardStats?.deadlines?.find((d: Deadline) => d.isNext);
   }
 
   get upcomingDeadlines(): Deadline[] {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.deadlines?.filter((d: Deadline) => !d.isNext) || [];
+    return this.dashboardStats?.deadlines?.filter((d: Deadline) => !d.isNext) || [];
+  }
+
+  get effectiveNextDeadline(): { gameweek: number; deadlineTime: string } | null {
+    if (this.transferWindowStatus?.nextDeadline) {
+      const fallbackGw = (this.dashboardStats?.gameState?.currentGameweek ?? 0) + 1;
+      return {
+        gameweek: this.transferWindowStatus.nextGameweek ?? fallbackGw,
+        deadlineTime: this.transferWindowStatus.nextDeadline
+      };
+    }
+
+    if (this.nextDeadline) {
+      return {
+        gameweek: this.nextDeadline.gameweek,
+        deadlineTime: this.nextDeadline.deadlineTime
+      };
+    }
+
+    return null;
   }
 
   get topTransfersIn(): PlayerTransferStat[] {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.topTransfersIn || [];
+    return this.dashboardStats?.topTransfersIn || [];
   }
 
   get topTransfersOut(): PlayerTransferStat[] {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.topTransfersOut || [];
+    return this.dashboardStats?.topTransfersOut || [];
   }
 
   get potw(): PlayerSummary[] {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.potw || [];
+    return this.dashboardStats?.potw || [];
   }
 
   get totw(): PlayerSummary[] {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.totw || [];
+    return this.dashboardStats?.totw || [];
   }
 
   get availability(): PlayerAvailability[] {
-    let stats: any;
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    return stats?.availability || [];
+    return this.dashboardStats?.availability || [];
+  }
+
+  get playerCount(): number {
+    return this.team?.playerCount || this.team?.players?.length || 0;
+  }
+
+  get inBank(): number {
+    return this.team?.remainingBudget ?? 0;
+  }
+
+  get currentGameweek(): number {
+    return this.dashboardStats?.gameState?.currentGameweek ?? 0;
+  }
+
+  get topPreviousGameweekPlayer(): PlayerSummary | null {
+    const pool = this.potw.length > 0 ? this.potw : this.totw;
+    if (!pool.length) {
+      return null;
+    }
+    return [...pool].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))[0] || null;
   }
 
   constructor(
     public auth: AuthService,
     public state: DashboardStateService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private api: ApiService
   ) { }
 
   ngOnInit(): void {
@@ -225,36 +202,63 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.user = this.auth.getUser();
     this.state.loadDashboardData();
 
-    // Start countdown timer (updates every second)
+    this.stateSubscription = new Subscription();
+
+    this.stateSubscription.add(
+      this.state.dashboardStats$.subscribe(stats => {
+        this.dashboardStats = stats;
+      })
+    );
+
+    this.stateSubscription.add(
+      this.state.team$.subscribe(team => {
+        this.team = team;
+        this.updateTeamComposition(team);
+        this.updateSquadValue(team);
+      })
+    );
+
     this.startCountdownTimer();
 
-    // Auto-refresh dashboard data every 60 seconds
-    this.autoRefreshSubscription = interval(60000)
-      .pipe(switchMap(() => {
-        this.state.loadDashboardData();
-        return this.state.dashboardStats$;
-      }))
-      .subscribe(() => {
-        this.updateDynamicMetrics();
-        this.cdr.detectChanges();
+    this.leaderboardSubscription = interval(60000)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.api.getLeaderboard().pipe(catchError(() => of([] as LeaderboardEntry[]))))
+      )
+      .subscribe(rows => {
+        const top = rows?.[0];
+        this.topOverallUserName = top?.username || 'No data';
+        this.topOverallUserPoints = top?.totalPoints ?? 0;
       });
 
-    // Update dynamic metrics when data loads
-    this.state.dashboardStats$.subscribe(() => {
-      this.updateDynamicMetrics();
-      this.cdr.detectChanges();
-    });
+    this.transferWindowSubscription = interval(30000)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.api.getTransferWindowStatus().pipe(catchError(() => of(null))))
+      )
+      .subscribe(status => {
+        this.transferWindowStatus = status;
+        const parsedServerNow = this.parseBackendDateToMs(status?.currentDate || null);
+        if (parsedServerNow !== null) {
+          this.serverNowAtFetchMs = parsedServerNow;
+          this.serverNowFetchedAtClientMs = Date.now();
+        }
+        this.updateCountdown();
+      });
 
-    this.state.team$.subscribe(() => {
-      this.updateTeamComposition();
-      this.updateSquadValue();
-      this.cdr.detectChanges();
-    });
+    this.autoRefreshSubscription = interval(60000)
+      .pipe(startWith(0))
+      .subscribe(() => {
+        this.state.loadDashboardData();
+      });
   }
 
   ngOnDestroy(): void {
+    this.stateSubscription?.unsubscribe();
     this.countdownSubscription?.unsubscribe();
     this.autoRefreshSubscription?.unsubscribe();
+    this.transferWindowSubscription?.unsubscribe();
+    this.leaderboardSubscription?.unsubscribe();
   }
 
   private startCountdownTimer(): void {
@@ -266,15 +270,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private updateCountdown(): void {
-    const nextDeadline = this.nextDeadline;
+    const nextDeadline = this.effectiveNextDeadline;
     if (!nextDeadline) {
       this.countdownTime = { days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
       this.isLowTime = false;
       return;
     }
 
-    const deadlineDate = new Date(nextDeadline.deadlineTime).getTime();
-    const now = new Date().getTime();
+    const deadlineDate = this.parseBackendDateToMs(nextDeadline.deadlineTime);
+    if (deadlineDate === null) {
+      this.countdownTime = { days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
+      this.isLowTime = false;
+      return;
+    }
+
+    const now = this.getReferenceNowMs();
     const diff = deadlineDate - now;
 
     if (diff <= 0) {
@@ -292,76 +302,109 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // Mark as low time if less than 6 hours remaining
       this.isLowTime = totalSeconds < 6 * 3600;
     }
-    this.cdr.detectChanges();
   }
 
-  private updateTeamComposition(): void {
-    let stats: any;
-    this.state.team$.subscribe(team => {
-      if (team?.players) {
-        this.teamComposition = {
-          gk: team.players.filter((p: any) => p.position === 'GK').length,
-          def: team.players.filter((p: any) => p.position === 'DEF').length,
-          mid: team.players.filter((p: any) => p.position === 'MID').length,
-          fwd: team.players.filter((p: any) => p.position === 'FWD').length
-        };
-      }
-    }).unsubscribe();
+  private getReferenceNowMs(): number {
+    if (this.serverNowAtFetchMs !== null && this.serverNowFetchedAtClientMs !== null) {
+      const elapsedClientMs = Date.now() - this.serverNowFetchedAtClientMs;
+      return this.serverNowAtFetchMs + Math.max(0, elapsedClientMs);
+    }
+    return Date.now();
   }
 
-  private updateSquadValue(): void {
-    this.state.team$.subscribe(team => {
-      if (team?.players) {
-        // Calculate squad value from player prices (assuming price property exists)
-        this.squadValue = team.players.reduce((sum: number, p: any) => {
-          return sum + (p.price || 0);
-        }, 0);
-      }
-    }).unsubscribe();
-  }
-
-  private updateDynamicMetrics(): void {
-    let stats: any;
-    let team: any;
-
-    this.state.dashboardStats$.subscribe(s => stats = s).unsubscribe();
-    this.state.team$.subscribe(t => team = t).unsubscribe();
-
-    if (stats?.gameState) {
-      // Display gameweek points - use average as placeholder if specific gameweek points not available
-      this.gameweekPointsDisplay = stats.gameState.averagePoints || 0;
-      
-      // Performance metrics
-      this.performanceMetrics = [
-        {
-          label: 'Form',
-          value: stats.gameState.averagePoints || 0,
-          trend: (stats.gameState.averagePoints || 0) > (stats.gameState.highestPoints ? stats.gameState.highestPoints / 2 : 0) ? 'up' : 'neutral',
-          color: '#4ade80'
-        },
-        {
-          label: 'Efficiency',
-          value: Math.min(100, (team?.totalPoints || 0) / 2),
-          trend: 'up',
-          color: '#38bdf8'
-        }
-      ];
+  private parseBackendDateToMs(value: string | null | undefined): number | null {
+    if (!value) {
+      return null;
     }
 
-    if (stats?.transfersMade !== undefined) {
-      this.gameweekTransfersDisplay = stats.transfersMade;
+    const raw = value.trim();
+    if (!raw) {
+      return null;
     }
 
-    // Generate a realistic rank
-    this.overallRank = this.generateRank();
+    // Backend sends LocalDateTime in UTC without timezone suffix.
+    const hasTimezone = /[zZ]|[+\-]\d{2}:\d{2}$/.test(raw);
+    const normalized = hasTimezone ? raw : `${raw}Z`;
+
+    const asUtc = Date.parse(normalized);
+    if (!Number.isNaN(asUtc)) {
+      return asUtc;
+    }
+
+    const fallback = Date.parse(raw);
+    return Number.isNaN(fallback) ? null : fallback;
   }
 
-  private generateRank(): string {
-    const randomRank = Math.floor(Math.random() * 13000000) + 1;
-    return new Intl.NumberFormat('en-US').format(randomRank);
+  private updateTeamComposition(team: TeamResponse | null): void {
+    const players = team?.players || [];
+    this.teamComposition = {
+      gk: players.filter((p: any) => p.position === 'GK').length,
+      def: players.filter((p: any) => p.position === 'DEF').length,
+      mid: players.filter((p: any) => p.position === 'MID').length,
+      fwd: players.filter((p: any) => p.position === 'FWD').length
+    };
+  }
+
+  private updateSquadValue(team: TeamResponse | null): void {
+    const players = team?.players || [];
+    this.squadValue = players.reduce((sum: number, p: any) => sum + (p.price || 0), 0);
+  }
+
+  go(path: string): void {
+    this.router.navigate([path]);
+  }
+
+  refresh(): void {
+    this.state.refresh();
+  }
+
+  logout(): void {
+    this.auth.logout();
   }
 
   formatCountdownValue(value: number): string {
     return String(value).padStart(2, '0');
+  }
+
+  getProfileImageSrc(): string | null {
+    const value = this.user?.profileImage ?? null;
+    if (!value) {
+      return null;
+    }
+    if (value.startsWith('data:image/')) {
+      return value;
+    }
+    if (value.startsWith('/')) {
+      return `${this.backendBase}${value}`;
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    return null;
+  }
+
+  getTeamImageSrc(): string | null {
+    const value = this.team?.teamImage ?? null;
+    if (!value) {
+      return null;
+    }
+    if (value.startsWith('data:image/')) {
+      return value;
+    }
+    if (value.startsWith('/')) {
+      return `${this.backendBase}${value}`;
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    return null;
+  }
+
+  getClubLogo(team: string | null | undefined): string {
+    return getTeamLogo(team || '');
+  }
+
+  getJersey(team: string | null | undefined): string {
+    return getTeamJersey(team || '');
   }
 }
