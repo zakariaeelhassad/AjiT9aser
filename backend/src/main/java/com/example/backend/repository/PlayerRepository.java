@@ -1,7 +1,7 @@
 package com.example.backend.repository;
 
-import com.example.backend.model.Player;
-import com.example.backend.model.Position;
+import com.example.backend.model.entity.Player;
+import com.example.backend.model.enums.Position;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
