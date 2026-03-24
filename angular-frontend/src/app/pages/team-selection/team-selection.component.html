@@ -38,22 +38,6 @@
                 @if (activeFilterPanel === 'global') {
                 <div class="mb-5 pb-5 border-b border-purple-500/20 space-y-3">
                     <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">View</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button (click)="setFilterView('all')"
-                                [ngClass]="filterView === 'all' ? 'bg-purple-600/50 border-purple-500 text-white' : 'bg-black/30 border-white/10 text-slate-400 hover:border-purple-500/30'"
-                                class="border rounded px-3 py-2 text-xs font-semibold transition-colors">
-                                All players
-                            </button>
-                            <button (click)="setFilterView('watchlist')"
-                                [ngClass]="filterView === 'watchlist' ? 'bg-purple-600/50 border-purple-500 text-white' : 'bg-black/30 border-white/10 text-slate-400 hover:border-purple-500/30'"
-                                class="border rounded px-3 py-2 text-xs font-semibold transition-colors">
-                                Watchlist
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
                         <p class="text-xs font-bold text-slate-400 uppercase mb-2">Sort</p>
                         <div class="grid grid-cols-3 gap-2">
                             <button (click)="setSortBy('points')"
@@ -237,38 +221,26 @@
         <!-- ═══ RIGHT PANEL: MAIN PITCH VIEW ═══ -->
         <main class="flex flex-col gap-4">
 
-            <!-- Top Title & Controls -->
+            <!-- Top Title & Team Image -->
             <div class="flex justify-between items-center bg-black/20 p-4 rounded-xl border border-white/5">
                 <div>
                     <h1 class="text-2xl lg:text-3xl font-black text-white">Team Selection</h1>
                 </div>
-                <div class="flex gap-2">
-                    <button
-                        class="bg-[#1e0a30] text-slate-300 hover:text-white border border-purple-500/30 font-semibold px-4 py-1.5 rounded-l-lg rounded-r-none text-xs transition-colors">Pitch
-                        View</button>
-                    <button
-                        class="bg-black/40 text-white font-bold px-4 py-1.5 rounded-r-lg rounded-l-none text-xs border border-white/10">List
-                        View</button>
+                <div class="flex items-center">
+                    @if (getTeamImageSrc()) {
+                    <img [src]="getTeamImageSrc()!" alt="Team image"
+                        class="w-12 h-12 rounded-xl object-cover border border-cyan-400/40" />
+                    } @else {
+                    <div
+                        class="w-12 h-12 rounded-xl border border-cyan-400/30 bg-cyan-500/10 flex items-center justify-center text-cyan-200 font-bold text-[10px] text-center leading-tight">
+                        TEAM
+                    </div>
+                    }
                 </div>
             </div>
 
             <!-- Budget & Info Strip -->
             <div class="glass-card p-4 flex flex-wrap items-center justify-between gap-4">
-
-                <div class="flex gap-4">
-                    <!-- Wildcard mock -->
-                    <div
-                        class="bg-black/30 border border-purple-500/30 rounded px-8 py-1.5 text-center flex flex-col items-center">
-                        <span class="text-sky-400 text-lg mb-1">🛡️</span>
-                        <span class="text-white text-[10px] uppercase tracking-widest font-bold">Wildcard</span>
-                    </div>
-                    <!-- Free Hit mock -->
-                    <div
-                        class="bg-black/30 border border-white/10 rounded px-8 py-1.5 text-center flex flex-col items-center">
-                        <span class="text-slate-400 text-lg mb-1">🎯</span>
-                        <span class="text-slate-400 text-[10px] uppercase tracking-widest font-bold">Free Hit</span>
-                    </div>
-                </div>
 
                 <div class="flex items-center gap-6 md:gap-10 mx-auto lg:mr-0">
                     <div class="flex flex-col items-center">
@@ -286,16 +258,18 @@
                     <div class="flex flex-col items-center">
                         @if (!hasExistingTeam) {
                         <div class="text-white font-black text-xl">0 pts</div>
-                        } @else if (transfersMade === 0) {
+                        } @else {
+                        @let totalTransfers = currentGameweekTransferCount + transfersMade;
+                        @if (totalTransfers === 0) {
                         <div class="text-emerald-400 font-black text-xl">1 Free</div>
-                        } @else if (transfersMade <= freeTransfers) { <div class="text-emerald-400 font-black text-xl">0
-                            pts
+                        } @else if (totalTransfers === 1) {
+                        <div class="text-emerald-400 font-black text-xl">0 pts</div>
+                        } @else {
+                        <div class="text-red-400 font-black text-xl">-{{ transferCost }} pts</div>
+                        }
+                        }
+                        <span class="text-[10px] text-slate-400 uppercase mt-1">Cost</span>
                     </div>
-                    } @else {
-                    <div class="text-red-400 font-black text-xl">-{{ transferCost }} pts</div>
-                    }
-                    <span class="text-[10px] text-slate-400 uppercase mt-1">Cost</span>
-                </div>
             </div>
 
     </div>
@@ -542,12 +516,14 @@
             <span class="text-slate-400 text-xs">{{ transferWindowStatus?.message }}</span>
             } @else {
             <span class="text-white font-bold text-sm">
-                @if (transfersMade === 0) {
+                @let totalTransfers = currentGameweekTransferCount + transfersMade;
+                @if (totalTransfers === 0) {
                 No transfers made yet.
-                } @else if (transfersMade <= freeTransfers) { {{ transfersMade }} Free Transfer{{ transfersMade===1 ? ''
-                    : 's' }} used — No cost! } @else { {{ transfersMade }} transfer{{ transfersMade===1 ? '' : 's' }} —
-                    {{ freeTransfers }} free, <span class="text-red-400">-{{ transferCost }} pts cost</span>
-            }
+                } @else if (totalTransfers === 1) {
+                1 Free Transfer used — No cost!
+                } @else {
+                {{ totalTransfers }} transfer{{ totalTransfers===1 ? '' : 's' }} — {{ freeTransfers }} free, <span class="text-red-400">-{{ transferCost }} pts cost</span>
+                }
             </span>
             <span class="text-slate-400 text-xs">1 free transfer per gameweek. Each extra costs 4 pts.</span>
             }
