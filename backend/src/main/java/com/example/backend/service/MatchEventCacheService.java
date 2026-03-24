@@ -1,6 +1,6 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.MatchEventDTO;
+import com.example.backend.dto.match.MatchEventDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
