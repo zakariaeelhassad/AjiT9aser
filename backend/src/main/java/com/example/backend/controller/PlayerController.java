@@ -1,10 +1,10 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.PlayerResponse;
-import com.example.backend.dto.PlayerSummary;
+import com.example.backend.dto.player.PlayerResponse;
+import com.example.backend.dto.player.PlayerSummary;
 import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.model.Player;
-import com.example.backend.model.Position;
+import com.example.backend.model.entity.Player;
+import com.example.backend.model.enums.Position;
 import com.example.backend.repository.PlayerRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
