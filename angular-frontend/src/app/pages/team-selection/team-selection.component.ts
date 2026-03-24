@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ApiService, PlayerSummary, TransferWindowStatus } from '../../core/services/api.service';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { FormsModule } from '@angular/forms';
-import { catchError, finalize, interval, of, startWith, Subscription, switchMap } from 'rxjs';
+import { catchError, finalize, forkJoin, interval, of, startWith, Subscription, switchMap } from 'rxjs';
 
 export interface PitchSlot {
   id: number;
@@ -29,12 +29,14 @@ export interface PitchSlot {
   `]
 })
 export class TeamSelectionComponent implements OnInit, OnDestroy {
+  private readonly backendBase = 'http://localhost:8080';
   budget: number = 100.0;
   playersSelected: number = 0;
   maxPlayers: number = 15;
   errorMessage: string | null = null;
   saving: boolean = false;
   currentGameweek: number = 0;
+  teamImage: string | null = null;
 
   slots: PitchSlot[] = [
     { id: 1, position: 'GK', player: null },
@@ -76,6 +78,7 @@ export class TeamSelectionComponent implements OnInit, OnDestroy {
   originalTeam: PlayerSummary[] = [];
   originalBudget: number = 100.0;
   freeTransfers: number = 1;
+  currentGameweekTransferCount: number = 0; // Actual transfer count from backend for this gameweek
 
   // Transfer Window Lock State
   gameweekLocked: boolean = false;
@@ -118,19 +121,34 @@ export class TeamSelectionComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
 
-    this.api.getMyTeam().subscribe({
-      next: (team) => {
-        if (team && team.players && team.players.length === 15) {
-          console.log('TeamSelectionComponent: Found existing full team, loading into slots.');
-          this.hasExistingTeam = true;
+    forkJoin({
+      team: this.api.getMyTeam().pipe(catchError(() => of(null))),
+      lineup: this.api.getTeamLineup().pipe(catchError(() => of(null)))
+    }).subscribe({
+      next: ({ team, lineup }) => {
+        const lineupPlayers: PlayerSummary[] = (lineup?.players || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          position: p.position,
+          realTeam: p.realTeam,
+          price: p.price,
+          totalPoints: p.totalPoints
+        }));
+
+        if (team) {
+          this.teamImage = team.teamImage || null;
           this.budget = team.remainingBudget;
           this.originalBudget = team.remainingBudget;
-          this.playersSelected = 15;
-          this.originalTeam = [...team.players]; // Save copy for transfer maths
+        }
 
-          // Populate slots
+        if (lineupPlayers.length === 15) {
+          console.log('TeamSelectionComponent: Found full lineup, loading into slots.');
+          this.hasExistingTeam = true;
+          this.playersSelected = 15;
+          this.originalTeam = [...lineupPlayers];
+
           const playerMap = new Map<string, PlayerSummary[]>();
-          team.players.forEach(p => {
+          lineupPlayers.forEach(p => {
             const key = p.position;
             if (!playerMap.has(key)) playerMap.set(key, []);
             playerMap.get(key)!.push(p);
@@ -143,15 +161,15 @@ export class TeamSelectionComponent implements OnInit, OnDestroy {
             }
           });
 
-          this.fetchPlayers(); // Fetch available list for view only
+          this.fetchPlayers();
+          this.fetchCurrentGameweekTransferCount();
         } else {
-          // Team exists but maybe incomplete, treat as blank slate and start over (or handle edge case)
           this.hasExistingTeam = false;
           this.resetTeam();
         }
       },
-      error: (err) => {
-        console.log('TeamSelectionComponent: No existing team found, initializing blank slate.');
+      error: () => {
+        console.log('TeamSelectionComponent: Failed to load team data, initializing blank slate.');
         this.hasExistingTeam = false;
         this.resetTeam();
       }
@@ -213,6 +231,20 @@ export class TeamSelectionComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  fetchCurrentGameweekTransferCount() {
+    this.api.getCurrentGameweekTransferCount().subscribe({
+      next: (response) => {
+        this.currentGameweekTransferCount = response.transferCount;
+        console.log(`TeamSelectionComponent: Current gameweek (${response.gameweek}) transfer count: ${response.transferCount}`);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to fetch current gameweek transfer count:', err);
+        this.currentGameweekTransferCount = 0;
+      }
+    });
   }
 
   filterPlayers() {
@@ -468,7 +500,9 @@ export class TeamSelectionComponent implements OnInit, OnDestroy {
 
   get transferCost(): number {
     if (!this.hasExistingTeam) return 0;
-    const extraTransfers = this.transfersMade - this.freeTransfers;
+    // Include both the transfer count from this session and any already made in this gameweek
+    const totalTransfers = this.currentGameweekTransferCount + this.transfersMade;
+    const extraTransfers = totalTransfers - this.freeTransfers;
     return Math.max(0, extraTransfers * 4);
   }
 
@@ -571,5 +605,22 @@ export class TeamSelectionComponent implements OnInit, OnDestroy {
       minute: '2-digit',
       hour12: false
     });
+  }
+
+  getTeamImageSrc(): string | null {
+    const value = this.teamImage ?? null;
+    if (!value) {
+      return null;
+    }
+    if (value.startsWith('data:image/')) {
+      return value;
+    }
+    if (value.startsWith('/')) {
+      return `${this.backendBase}${value}`;
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    return null;
   }
 }
