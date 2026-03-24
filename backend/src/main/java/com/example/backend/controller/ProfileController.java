@@ -48,3 +48,4 @@ public class ProfileController {
                 .body(image);
     }
 }
+
