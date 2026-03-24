@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.GameweekStatsResponse;
+import com.example.backend.dto.GameweekTotalPointsResponse;
+import com.example.backend.dto.GameweekTransferCountResponse;
 import com.example.backend.dto.PlayerSummary;
 import com.example.backend.dto.SaveLineupRequest;
 import com.example.backend.dto.SubstitutionRequest;
@@ -111,6 +113,20 @@ public class TeamController {
         return ResponseEntity.ok(teamManagementService.getGameweekStats(userId, gameweek));
     }
 
+    @GetMapping("/gameweek/transfers/count")
+    @Operation(summary = "Get transfer count for current gameweek")
+    public ResponseEntity<GameweekTransferCountResponse> getCurrentGameweekTransferCount() {
+        Long userId = securityUtils.getCurrentUserId();
+        return ResponseEntity.ok(teamManagementService.getCurrentGameweekTransferCount(userId));
+    }
+
+    @GetMapping("/gameweek-points")
+    @Operation(summary = "Get persisted total points per gameweek for your team")
+    public ResponseEntity<List<GameweekTotalPointsResponse>> getGameweekPoints() {
+        Long userId = securityUtils.getCurrentUserId();
+        return ResponseEntity.ok(teamManagementService.getPersistedGameweekTotals(userId));
+    }
+
     private TeamResponse toResponse(UserTeam team) {
         List<PlayerSummary> players = team.getTeamPlayers().stream()
                 .map(UserTeamPlayer::getPlayer)
@@ -121,6 +137,7 @@ public class TeamController {
         return new TeamResponse(
                 team.getId(),
                 team.getTeamName(),
+            team.getTeamImage(),
                 team.getBudget(),
                 team.getRemainingBudget(),
                 team.getTotalPoints(),
