@@ -88,14 +88,6 @@ public class GameEngineService {
                     currentMatch.getAwayTeam(),
                     currentMatch.getGameweek());
 
-            // Process events at this minute (simplified - events don't have minute info in
-            // JSON)
-            // In a real implementation, you'd need minute data in the JSON
-            // For now, we'll process all events at specific minutes
-            if (minute == 1) {
-                processMatchEvents(currentMatch);
-            }
-
             // Check if match is complete
             if (minute >= 90) {
                 completeMatch(currentMatch);
@@ -192,6 +184,9 @@ public class GameEngineService {
                 match.getHomeScore(),
                 match.getAwayScore(),
                 match.getAwayTeam());
+
+        // Apply all scoring only after full-time.
+        processMatchEvents(match);
 
         // Process clean sheets
         if (match.getAwayScore() == 0) {
