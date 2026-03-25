@@ -14,7 +14,6 @@ import {
 import { AuthService, UserResponse } from '../../../../core/services/auth.service';
 import { DashboardStateService } from '../../../../core/services/dashboard-state.service';
 import { NavbarComponent } from '../../../../shared/components/navbar/navbar.component';
-import { FooterComponent } from '../../../../shared/components/footer/footer.component';
 import { getTeamJersey, getTeamLogo } from '../../../../shared/utils/team-visuals';
 import { ApiService } from '../../../../core/services/api.service';
 import { Subscription, interval, of } from 'rxjs';
@@ -45,7 +44,7 @@ interface TeamComposition {
 @Component({
   selector: 'app-dashboard-content',
   standalone: true,
-  imports: [CommonModule, NavbarComponent, FooterComponent],
+  imports: [CommonModule, NavbarComponent],
   templateUrl: './dashboard-content.component.html',
   styles: [`
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
