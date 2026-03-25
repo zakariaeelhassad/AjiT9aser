@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { PlayerSummary } from '../../../core/services/api.service';
+import { PlayerSummary } from '../../../core/models';
 
 const POS_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   GK: { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)', text: '#fbbf24' },
@@ -20,7 +20,7 @@ const POS_STYLES: Record<string, { bg: string; border: string; text: string }> =
     <!-- Captain / VC badges -->
     @if (isCaptain) {
       <span class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-amber-400 text-[#1a1000]
-                   flex items-center justify-center text-xs font-black z-10 shadow-[0_0_8px_rgba(251,191,36,0.6)]">©</span>
+                   flex items-center justify-center text-xs font-black z-10 shadow-[0_0_8px_rgba(251,191,36,0.6)]">ï¿½</span>
     }
     @if (isViceCaptain && !isCaptain) {
       <span class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-indigo-400 text-white
@@ -38,7 +38,7 @@ const POS_STYLES: Record<string, { bg: string; border: string; text: string }> =
     <!-- Info -->
     <div class="flex flex-col items-center gap-0.5 w-full">
       <span class="text-xs font-semibold text-slate-100 text-center leading-tight break-words">{{ player.name || 'Unknown' }}</span>
-      <span class="text-[10px] text-slate-500 text-center">{{ player.realTeam || '—' }}</span>
+      <span class="text-[10px] text-slate-500 text-center">{{ player.realTeam || 'ï¿½' }}</span>
     </div>
 
     <!-- Footer row -->
