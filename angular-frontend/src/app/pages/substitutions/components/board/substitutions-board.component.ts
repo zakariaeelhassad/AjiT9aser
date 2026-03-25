@@ -23,7 +23,7 @@ import { LineupSlot } from '../substitutions-types';
   ]
 })
 export class SubstitutionsBoardComponent {
-  private readonly backendBase = 'http://localhost:8080';
+  private readonly backendBase = 'http://localhost:8081';
 
   @Input() teamName = '';
   @Input() teamImage: string | null = null;
