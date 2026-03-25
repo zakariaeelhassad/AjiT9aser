@@ -1,0 +1,46 @@
+<section class="py-20 px-6">
+  <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+    <div>
+      <span class="badge badge-green mb-5 inline-flex">About Valhalla</span>
+      <h2 class="text-4xl font-black tracking-tight mb-6">
+        What is<br/><span class="gradient-text">Valhalla?</span>
+      </h2>
+      <p class="text-slate-400 leading-relaxed mb-4">
+        <strong class="text-slate-200">Valhalla</strong> (Moroccan darija for "Come on, compete!") is a
+        fantasy football game built around real Premier League matches. Each week you assemble a squad,
+        captain your best player, and rack up points based on their real-world performances.
+      </p>
+      <p class="text-slate-400 leading-relaxed mb-4">
+        You start with a <strong class="text-slate-200">100.0 budget</strong> to sign exactly
+        <strong class="text-slate-200">15 players</strong> spanning
+        goalkeepers, defenders, midfielders, and forwards. Every goal, assist, and card feeds into your score.
+      </p>
+      <p class="text-slate-400 leading-relaxed mb-8">
+        Compete on the global leaderboard, or challenge friends. Strategy and form-spotting will
+        determine who lifts the trophy.
+      </p>
+      @if (!isAuthenticated) {
+        <a routerLink="/register" class="btn-primary no-underline">Join Now - It's Free</a>
+      }
+    </div>
+
+    <div class="glass-card p-7 lg:sticky lg:top-24">
+      <div class="flex items-center justify-between mb-6">
+        <span class="text-base font-bold">Points System</span>
+        <span class="badge badge-blue">Per Event</span>
+      </div>
+      <div class="flex flex-col gap-2 mb-6">
+        @for (row of scoring; track row.event) {
+          <div class="flex justify-between items-center px-3 py-2.5 rounded-lg"
+               style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04)">
+            <span class="text-slate-400 text-sm">{{ row.event }}</span>
+            <span class="font-outfit text-lg font-black" [style.color]="row.color">{{ row.pts }}</span>
+          </div>
+        }
+      </div>
+      <p class="text-slate-500 text-xs text-center border-t border-white/[0.05] pt-4">
+        Captain earns <strong class="text-slate-400">double points</strong> - 15-player squads - 100.0 budget
+      </p>
+    </div>
+  </div>
+</section>

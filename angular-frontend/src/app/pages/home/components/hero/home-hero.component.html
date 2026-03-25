@@ -1,0 +1,61 @@
+<section class="relative min-h-[calc(100vh-68px)] flex items-center overflow-hidden"
+         style="background: linear-gradient(135deg,#070b14 0%,#0f1b2d 50%,#070b14 100%)">
+  <div class="absolute w-[600px] h-[600px] rounded-full -top-36 -right-24 blur-[90px] pointer-events-none animate-orb-1"
+       style="background:radial-gradient(circle, rgba(56,189,248,0.12) 0%, transparent 70%)"></div>
+  <div class="absolute w-[400px] h-[400px] rounded-full -bottom-20 left-[10%] blur-[90px] pointer-events-none animate-orb-2"
+       style="background:radial-gradient(circle, rgba(129,140,248,0.1) 0%, transparent 70%)"></div>
+  <div class="absolute w-[250px] h-[250px] rounded-full top-[40%] left-[50%] blur-[90px] pointer-events-none"
+       style="animation:orb-1 22s ease-in-out infinite reverse; background:radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%)"></div>
+
+  <div class="max-w-7xl mx-auto px-6 py-20 relative z-10 w-full">
+    <div class="max-w-2xl animate-fade-in-up">
+      <div class="mb-5"><span class="badge badge-blue">Season 2025/26</span></div>
+
+      <h1 class="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter mb-6 leading-[1.05]">
+        Your Ultimate<br/>
+        <span class="gradient-text">Fantasy Football</span><br/>
+        Experience
+      </h1>
+
+      <p class="text-slate-400 text-lg leading-relaxed mb-8 max-w-xl">
+        Build your dream squad, earn points each gameweek, and battle your way to the
+        top of the leaderboard. Strategy meets football.
+      </p>
+
+      <div class="flex gap-3 flex-wrap mb-12">
+        @if (isAuthenticated) {
+          <a routerLink="/dashboard" class="btn-primary text-base no-underline">Go to Dashboard -></a>
+        } @else {
+          <a routerLink="/register" class="btn-primary text-base no-underline">Play for Free</a>
+          <a routerLink="/login" class="btn-secondary text-base no-underline">Log In</a>
+        }
+      </div>
+
+      <div class="inline-flex items-center gap-6 glass-card px-6 py-4">
+        <div class="flex flex-col items-center"><span class="font-outfit font-black text-2xl gradient-text">15K+</span><span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Players</span></div>
+        <div class="w-px h-9 bg-white/[0.08]"></div>
+        <div class="flex flex-col items-center"><span class="font-outfit font-black text-2xl gradient-text">{{ currentGameweek }}</span><span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Gameweeks</span></div>
+        <div class="w-px h-9 bg-white/[0.08]"></div>
+        <div class="flex flex-col items-center"><span class="font-outfit font-black text-2xl gradient-text">100.0</span><span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Budget</span></div>
+      </div>
+    </div>
+
+    <div class="hidden xl:flex absolute right-[5%] top-1/2 -translate-y-1/2 flex-col gap-4" aria-hidden="true">
+      <div class="glass-card px-5 py-3 flex flex-col gap-1 min-w-[155px] animate-float">
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded self-start" style="background:rgba(248,113,113,0.2);color:#f87171">FWD</span>
+        <span class="font-semibold text-slate-100">Haaland</span>
+        <span class="text-sky-400 text-xs font-semibold">14 pts</span>
+      </div>
+      <div class="glass-card px-5 py-3 flex flex-col gap-1 min-w-[155px] animate-float-slow">
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded self-start" style="background:rgba(74,222,128,0.2);color:#4ade80">MID</span>
+        <span class="font-semibold text-slate-100">Salah</span>
+        <span class="text-sky-400 text-xs font-semibold">18 pts</span>
+      </div>
+      <div class="glass-card px-5 py-3 flex flex-col gap-1 min-w-[155px] animate-float">
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded self-start" style="background:rgba(56,189,248,0.2);color:#38bdf8">DEF</span>
+        <span class="font-semibold text-slate-100">Alexander-Arnold</span>
+        <span class="text-sky-400 text-xs font-semibold">11 pts</span>
+      </div>
+    </div>
+  </div>
+</section>
