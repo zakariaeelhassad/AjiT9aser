@@ -4,7 +4,6 @@ import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 import { GameState } from '../../core/models';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
-import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { HomeHeroComponent } from './components/hero/home-hero.component';
 import { HomeFeaturesComponent, HomeFeatureItem } from './components/features/home-features.component';
 import { HomeAboutComponent, HomeScoringItem } from './components/about/home-about.component';
@@ -41,7 +40,6 @@ const FEATURE_BAR: Record<string, string> = {
   imports: [
     CommonModule,
     NavbarComponent,
-    FooterComponent,
     HomeHeroComponent,
     HomeFeaturesComponent,
     HomeAboutComponent,
