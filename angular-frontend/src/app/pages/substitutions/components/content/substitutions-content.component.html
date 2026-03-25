@@ -1,0 +1,36 @@
+<div class="min-h-screen flex flex-col" style="background:#070b14">
+  <app-navbar />
+
+  <div class="max-w-[1400px] mx-auto w-full px-4 lg:px-6 py-8 grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 flex-1 items-start relative">
+    <app-substitutions-sidebar
+      [loadingLineup]="loadingLineup"
+      [starterSlots]="starterSlots"
+      [benchSlots]="benchSlots"
+      [selectedSlotId]="selectedSlotId"
+      (slotSelected)="selectOrSwap($event)"
+    />
+
+    <app-substitutions-board
+      [teamName]="teamName"
+      [teamImage]="teamImage"
+      [loadingGameState]="loadingGameState"
+      [gameweekLocked]="gameweekLocked"
+      [transferWindowStatus]="transferWindowStatus"
+      [currentGameweek]="currentGameweek"
+      [nextDeadlineLabel]="nextDeadlineLabel"
+      [starterGks]="starterGks"
+      [starterDefs]="starterDefs"
+      [starterMids]="starterMids"
+      [starterFwds]="starterFwds"
+      [benchSlots]="benchSlots"
+      [selectedSlotId]="selectedSlotId"
+      [errorMessage]="errorMessage"
+      [successMessage]="successMessage"
+      [hasUnsavedChanges]="hasUnsavedChanges"
+      [saving]="saving"
+      (slotSelected)="selectOrSwap($event)"
+      (resetClicked)="resetToSaved()"
+      (saveClicked)="saveLineup()"
+    />
+  </div>
+</div>

@@ -1,0 +1,68 @@
+<aside class="flex flex-col gap-4 h-full">
+  <div class="glass-card p-6 flex flex-col h-[calc(100vh-140px)]" style="background: rgba(20, 10, 30, 0.6);">
+    <h2 class="text-3xl font-black text-white mb-2">Substitutions</h2>
+    <p class="text-xs text-slate-400 mb-6">Click Player 1, then Player 2 to swap. Save all your changes when ready.</p>
+
+    @if (loadingLineup) {
+      <div class="flex justify-center py-8">
+        <div class="w-8 h-8 border-4 border-sky-400/20 border-t-sky-400 rounded-full animate-spin"></div>
+      </div>
+    } @else {
+      <div class="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+        <div class="bg-black/30 border border-emerald-500/30 rounded-lg p-3">
+          <div class="text-xs uppercase tracking-widest text-emerald-300 font-bold mb-2">Starting XI</div>
+          <div class="space-y-2">
+            @for (slot of starterSlots; track slot.id) {
+              <button
+                (click)="onSlotClick(slot)"
+                class="w-full text-left px-3 py-2 rounded border text-sm transition-colors"
+                [class.border-sky-400]="isSelected(slot)"
+                [class.bg-sky-500/20]="isSelected(slot)"
+                [class.border-white/10]="!isSelected(slot)"
+                [class.bg-white/5]="!isSelected(slot)"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-white font-semibold truncate">{{ slot.player?.name || 'Empty slot' }}</span>
+                  <span class="text-[10px] text-slate-300 uppercase">{{ slot.player?.position || '--' }}</span>
+                </div>
+                <div class="text-[10px] text-slate-400 flex items-center gap-1">
+                  @if (slot.player?.realTeam) {
+                    <img [src]="getClubLogo(slot.player?.realTeam)" alt="Club" class="w-3.5 h-3.5 object-contain rounded-full" />
+                  }
+                  <span>{{ slot.player?.realTeam || 'No player' }}</span>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="bg-black/30 border border-purple-500/30 rounded-lg p-3">
+          <div class="text-xs uppercase tracking-widest text-purple-300 font-bold mb-2">Bench</div>
+          <div class="space-y-2">
+            @for (slot of benchSlots; track slot.id) {
+              <button
+                (click)="onSlotClick(slot)"
+                class="w-full text-left px-3 py-2 rounded border text-sm transition-colors"
+                [class.border-purple-400]="isSelected(slot)"
+                [class.bg-purple-500/20]="isSelected(slot)"
+                [class.border-white/10]="!isSelected(slot)"
+                [class.bg-white/5]="!isSelected(slot)"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-white font-semibold truncate">{{ slot.player?.name || 'Empty slot' }}</span>
+                  <span class="text-[10px] text-slate-300 uppercase">{{ slot.player?.position || '--' }}</span>
+                </div>
+                <div class="text-[10px] text-slate-400 flex items-center gap-1">
+                  @if (slot.player?.realTeam) {
+                    <img [src]="getClubLogo(slot.player?.realTeam)" alt="Club" class="w-3.5 h-3.5 object-contain rounded-full" />
+                  }
+                  <span>{{ slot.player?.realTeam || 'No player' }}</span>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</aside>
