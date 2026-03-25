@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, forkJoin, catchError, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, forkJoin, catchError, of } from 'rxjs';
 import { ApiService } from './api.service';
 import { DashboardStats, TeamResponse } from '../models';
 
@@ -42,7 +42,7 @@ export class DashboardStateService {
                 this._dashboardStats.next(stats);
                 this._loading.next(false);
             },
-            error: (err) => {
+            error: () => {
                 this._error.next('Failed to load dashboard data. Please try again.');
                 this._loading.next(false);
             }
