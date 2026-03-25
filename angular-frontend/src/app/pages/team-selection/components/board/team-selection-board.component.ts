@@ -23,7 +23,7 @@ import { PitchSlot } from '../team-selection-types';
   ]
 })
 export class TeamSelectionBoardComponent {
-  private readonly backendBase = 'http://localhost:8080';
+  private readonly backendBase = 'http://localhost:8081';
 
   @Input() teamImage: string | null = null;
   @Input() playersSelected = 0;
