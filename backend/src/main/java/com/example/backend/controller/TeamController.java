@@ -3,14 +3,13 @@ package com.example.backend.controller;
 import com.example.backend.dto.game.GameweekStatsResponse;
 import com.example.backend.dto.game.GameweekTotalPointsResponse;
 import com.example.backend.dto.game.GameweekTransferCountResponse;
-import com.example.backend.dto.player.PlayerSummary;
 import com.example.backend.dto.team.SaveLineupRequest;
 import com.example.backend.dto.team.SubstitutionRequest;
 import com.example.backend.dto.team.TeamResponse;
 import com.example.backend.dto.team.TeamLineupResponse;
 import com.example.backend.dto.team.TransferRequest;
+import com.example.backend.mapper.TeamMapper;
 import com.example.backend.model.entity.UserTeam;
-import com.example.backend.model.entity.UserTeamPlayer;
 import com.example.backend.security.SecurityUtils;
 import com.example.backend.service.TeamManagementService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/team")
@@ -30,13 +28,14 @@ public class TeamController {
 
     private final TeamManagementService teamManagementService;
     private final SecurityUtils securityUtils;
+    private final TeamMapper teamMapper;
 
     @GetMapping
     @Operation(summary = "Get your current squad")
     public ResponseEntity<TeamResponse> getMyTeam() {
         Long userId = securityUtils.getCurrentUserId();
         UserTeam team = teamManagementService.getUserSquad(userId);
-        return ResponseEntity.ok(toResponse(team));
+        return ResponseEntity.ok(teamMapper.toResponse(team));
     }
 
     @PostMapping("/players/{playerId}")
@@ -45,7 +44,7 @@ public class TeamController {
         Long userId = securityUtils.getCurrentUserId();
         teamManagementService.addPlayerToSquad(userId, playerId);
         UserTeam team = teamManagementService.getUserSquad(userId);
-        return ResponseEntity.ok(toResponse(team));
+        return ResponseEntity.ok(teamMapper.toResponse(team));
     }
 
     @DeleteMapping("/players/{playerId}")
@@ -54,7 +53,7 @@ public class TeamController {
         Long userId = securityUtils.getCurrentUserId();
         teamManagementService.removePlayerFromSquad(userId, playerId);
         UserTeam team = teamManagementService.getUserSquad(userId);
-        return ResponseEntity.ok(toResponse(team));
+        return ResponseEntity.ok(teamMapper.toResponse(team));
     }
 
     @PostMapping("/save")
@@ -62,7 +61,7 @@ public class TeamController {
     public ResponseEntity<TeamResponse> saveTeam(@RequestBody List<Long> playerIds) {
         Long userId = securityUtils.getCurrentUserId();
         UserTeam team = teamManagementService.saveFullSquad(userId, playerIds);
-        return ResponseEntity.ok(toResponse(team));
+        return ResponseEntity.ok(teamMapper.toResponse(team));
     }
 
     @PostMapping("/transfers")
@@ -70,7 +69,7 @@ public class TeamController {
     public ResponseEntity<TeamResponse> saveTransfers(@RequestBody TransferRequest request) {
         Long userId = securityUtils.getCurrentUserId();
         UserTeam team = teamManagementService.saveTransfers(userId, request.getPlayerIds(), request.getCost());
-        return ResponseEntity.ok(toResponse(team));
+        return ResponseEntity.ok(teamMapper.toResponse(team));
     }
 
     @GetMapping("/stats")
@@ -127,22 +126,5 @@ public class TeamController {
         return ResponseEntity.ok(teamManagementService.getPersistedGameweekTotals(userId));
     }
 
-    private TeamResponse toResponse(UserTeam team) {
-        List<PlayerSummary> players = team.getTeamPlayers().stream()
-                .map(UserTeamPlayer::getPlayer)
-                .map(p -> new PlayerSummary(p.getId(), p.getName(), p.getPosition(),
-                        p.getRealTeam(), p.getPrice(), p.getTotalPoints()))
-                .collect(Collectors.toList());
-
-        return new TeamResponse(
-                team.getId(),
-                team.getTeamName(),
-            team.getTeamImage(),
-                team.getBudget(),
-                team.getRemainingBudget(),
-                team.getTotalPoints(),
-                players,
-                players.size());
-    }
 }
 
