@@ -18,7 +18,6 @@ type PointsPlayer = PlayerSummary & { gameweekPoints: number, starter?: boolean 
   templateUrl: './points.component.html',
 })
 export class PointsComponent implements OnInit, OnDestroy {
-  private readonly backendBase = 'http://localhost:8080';
   user: UserResponse | null = null;
 
   // Mock League Data to drive template *ngFor iteration
