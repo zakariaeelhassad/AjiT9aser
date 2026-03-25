@@ -1,154 +1,22 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, catchError, throwError, map, tap } from 'rxjs';
-
-export interface PlayerSummary {
-    id: number; name: string; position: string;
-    realTeam: string; price: number; totalPoints: number;
-}
-
-export interface PaginatedResponse<T> {
-    content: T[];
-    totalElements: number;
-    totalPages: number;
-    size: number;
-    number: number;
-}
-
-export interface TeamResponse {
-    id: number; teamName: string; teamImage?: string | null; budget: number; remainingBudget: number;
-    totalPoints: number; players: PlayerSummary[]; playerCount: number; currentGameweekTransferCount?: number;
-}
-export interface TeamLineupPlayer {
-    id: number;
-    name: string;
-    position: string;
-    realTeam: string;
-    price: number;
-    totalPoints: number;
-    starter: boolean;
-}
-export interface TeamLineupResponse {
-    teamId: number;
-    teamName: string;
-    remainingBudget: number;
-    players: TeamLineupPlayer[];
-}
-export interface TeamGameweekStats {
-    gameweek: number;
-    teamPoints: number;
-    globalHighestPoints: number;
-    players: {
-        playerId: number;
-        name: string;
-        position: string;
-        realTeam: string;
-        price: number;
-        totalPoints: number;
-        points: number;
-        starter: boolean;
-    }[];
-}
-export interface ProfileResponse {
-    userId: number;
-    username: string;
-    email: string;
-    teamName: string;
-    profileImage: string | null;
-    teamImage: string | null;
-    token?: string | null;
-}
-export interface ProfileUpdateRequest {
-    username?: string;
-    email?: string;
-    teamName?: string;
-    currentPassword?: string;
-    newPassword?: string;
-    profileImage?: string | null;
-    teamImage?: string | null;
-}
-export interface GameweekResponse {
-    id: number; gameweekNumber: number; startDate: string; endDate: string; status: string;
-}
-export interface MatchEvent {
-    type: string; player: string; team: string; minute: number;
-}
-
-export interface MatchResponse {
-    id: number; gameweekNumber: number; homeTeam: string; awayTeam: string;
-    homeScore: number; awayScore: number; kickoffTime: string; finished: boolean;
-    status: string; elapsedMinutes: number; events: MatchEvent[];
-}
-export interface CurrentGameweekContext {
-    currentDate: string;
-    currentGameweek: number | null;
-    matches: MatchResponse[];
-}
-export interface TransferWindowStatus {
-    currentDate: string;
-    activeGameweek: number | null;
-    nextGameweek: number | null;
-    nextDeadline: string | null;
-    transfersAllowed: boolean;
-    phase: string;
-    message: string;
-}
-export interface SimClock {
-    simulatedNow: string;
-}
-
-export interface GameState {
-    currentGameweek: number; isRunning: boolean;
-    gameweekActive: boolean;
-    averagePoints: number; highestPoints: number;
-    topManager: string; topManagerPoints: number;
-}
-export interface LeaderboardEntry {
-    rank: number; userId: number; username: string; teamName: string; totalPoints: number;
-}
-export interface PlayerTransferStat {
-    playerId: number; name: string; position: string; realTeam: string; transfers: number;
-}
-export interface Deadline {
-    gameweek: number; deadlineTime: string; isNext: boolean;
-}
-export interface PlayerAvailability {
-    playerId: number; name: string; realTeam: string; position: string; status: string; news: string; chanceOfPlaying: number;
-}
-export interface DashboardStats {
-    gameState: GameState;
-    topTransfersIn: PlayerTransferStat[];
-    topTransfersOut: PlayerTransferStat[];
-    deadlines: Deadline[];
-    potw: PlayerSummary[];
-    totw: PlayerSummary[];
-    availability: PlayerAvailability[];
-    wildcardsPlayed: number;
-    transfersMade: number;
-    mostTransferredInPlayer: string;
-    mostCaptainedPlayer: string;
-}
-export interface UserLeague {
-    id: number; name: string; userRank: number; type: 'classic' | 'broadcaster' | 'general' | 'cup' | 'h2h';
-}
-export interface PitchPlayer {
-    player: PlayerSummary; isCaptain: boolean; isViceCaptain: boolean; multiplier: number; isSubstitite: boolean;
-}
-export interface AutoSub {
-    playerOut: PlayerSummary; playerIn: PlayerSummary;
-}
-export interface Fixture {
-    id: number; homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; kickoffTime: string; status: 'Upcoming' | 'Live' | 'FT'; broadcasters: string[];
-}
-export interface PointsPageData {
-    activeGameweek: number;
-    gwPoints: number; averagePoints: number; highestPoints: number; gwRank: number; gwTransfers: number;
-    leagues: UserLeague[];
-    pitchPlayers: PitchPlayer[];
-    benchPlayers: PitchPlayer[];
-    autoSubs: AutoSub[];
-    fixtures: Fixture[];
-}
+import {
+    CurrentGameweekContext,
+    DashboardStats,
+    GameState,
+    LeaderboardEntry,
+    MatchResponse,
+    PlayerSummary,
+    PointsPageData,
+    ProfileResponse,
+    ProfileUpdateRequest,
+    TeamGameweekStats,
+    TeamLineupResponse,
+    TeamResponse,
+    TransferWindowStatus,
+    SimClock
+} from '../models';
 
 const BASE = 'http://localhost:8080';
 
