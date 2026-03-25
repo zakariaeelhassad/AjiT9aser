@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, forkJoin, catchError, of, tap } from 'rxjs';
-import { ApiService, TeamResponse, DashboardStats } from './api.service';
+import { ApiService } from './api.service';
+import { DashboardStats, TeamResponse } from '../models';
 
 @Injectable({
     providedIn: 'root'
