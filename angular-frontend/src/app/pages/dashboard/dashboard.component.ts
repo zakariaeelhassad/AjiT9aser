@@ -2,15 +2,15 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
+  DashboardStats,
+  Deadline,
+  LeaderboardEntry,
+  PlayerAvailability,
   PlayerSummary,
   PlayerTransferStat,
-  Deadline,
-  PlayerAvailability,
-  DashboardStats,
   TeamResponse,
-  TransferWindowStatus,
-  LeaderboardEntry
-} from '../../core/services/api.service';
+  TransferWindowStatus
+} from '../../core/models';
 import { AuthService, UserResponse } from '../../core/services/auth.service';
 import { DashboardStateService } from '../../core/services/dashboard-state.service';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
