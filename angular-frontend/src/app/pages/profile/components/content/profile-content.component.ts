@@ -14,7 +14,7 @@ import { finalize, timeout } from 'rxjs';
   templateUrl: './profile-content.component.html'
 })
 export class ProfileContentComponent implements OnInit {
-  private readonly backendBase = 'http://localhost:8080';
+  private readonly backendBase = 'http://localhost:8081';
   loading = false;
   saving = false;
   message = '';
