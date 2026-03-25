@@ -2,7 +2,6 @@ import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../../../shared/components/navbar/navbar.component';
-import { FooterComponent } from '../../../../shared/components/footer/footer.component';
 import { ApiService } from '../../../../core/services/api.service';
 import { ProfileResponse, ProfileUpdateRequest } from '../../../../core/models';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -11,7 +10,7 @@ import { finalize, timeout } from 'rxjs';
 @Component({
   selector: 'app-profile-content',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarComponent, FooterComponent],
+  imports: [CommonModule, FormsModule, NavbarComponent],
   templateUrl: './profile-content.component.html'
 })
 export class ProfileContentComponent implements OnInit {
