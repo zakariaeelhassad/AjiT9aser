@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { catchError, finalize, forkJoin, interval, of, startWith, Subscription, switchMap } from 'rxjs';
-import { ApiService, TeamLineupPlayer, TeamLineupResponse, TransferWindowStatus } from '../../core/services/api.service';
+import { ApiService } from '../../core/services/api.service';
+import { TeamLineupPlayer, TeamLineupResponse, TransferWindowStatus } from '../../core/models';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { getTeamJersey, getTeamLogo } from '../../shared/utils/team-visuals';
 
