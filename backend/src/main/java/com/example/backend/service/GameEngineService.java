@@ -1,5 +1,7 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.game.GameStateResponse;
+
 public interface GameEngineService {
 
     void initialize();
@@ -12,7 +14,7 @@ public interface GameEngineService {
 
     void resetEngine();
 
-    com.example.backend.service.Impl.GameEngineService.GameState getGameState();
+    GameStateResponse getGameState();
 
     boolean isGameweekActive();
 }
