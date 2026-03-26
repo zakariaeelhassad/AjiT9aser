@@ -19,7 +19,6 @@ public class CommentaryService implements com.example.backend.service.Commentary
     }
 
     private String generateFallbackCommentary(String playerName, String eventType, int minute) {
-        // Moroccan Darija/Arabic commentary
         return switch (eventType.toUpperCase()) {
             case "GOAL" -> String.format("⚽ Wow! %s scored in minute %d! What a goal! 🔥", playerName, minute);
             case "ASSIST" -> String.format("💪 Incredible! %s made a key assist in the 90th minute! Well done!",
