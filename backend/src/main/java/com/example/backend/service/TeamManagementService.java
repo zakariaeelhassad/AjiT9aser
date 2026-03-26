@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.dto.game.GameweekStatsResponse;
 import com.example.backend.dto.game.GameweekTotalPointsResponse;
 import com.example.backend.dto.game.GameweekTransferCountResponse;
+import com.example.backend.dto.team.SquadStatisticsResponse;
 import com.example.backend.dto.team.TeamLineupResponse;
 import com.example.backend.model.entity.UserTeam;
 import com.example.backend.model.entity.UserTeamPlayer;
@@ -27,7 +28,7 @@ public interface TeamManagementService {
 
     UserTeam getUserSquad(Long userId);
 
-    com.example.backend.service.Impl.TeamManagementService.SquadStatistics getSquadStatistics(Long userId);
+    SquadStatisticsResponse getSquadStatistics(Long userId);
 
     GameweekStatsResponse getGameweekStats(Long userId, int gameweek);
 
