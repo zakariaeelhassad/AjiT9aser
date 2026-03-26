@@ -24,10 +24,51 @@ A robust Spring Boot backend application with REST API capabilities, security, v
 ### 1. Clone or Navigate to the Project
 
 ```bash
-cd C:\Users\youco\IdeaProjects\AjiT9aser\backend
+cd backend
 ```
 
-### 2. Build the Project
+### 2. Configure Environment Variables
+
+Copy the `.env.example` file to `.env` and update with your local database credentials:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and update:
+```env
+DB_URL=jdbc:postgresql://localhost:5432/aji_t9aser_db
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+SERVER_PORT=8080
+JWT_SECRET=your-secret-key
+JWT_EXPIRATION=86400000
+```
+
+**⚠️ Important**: The `.env` file is git-ignored and should **never** be committed to version control.
+
+#### Option A: Using IDE Run Configuration (Recommended for Local Development)
+
+**IntelliJ IDEA:**
+1. Open Run → Edit Configurations
+2. Select your Spring Boot run configuration
+3. Under "Environment variables", add:
+   ```
+   DB_URL=jdbc:postgresql://localhost:5432/aji_t9aser_db;DB_USERNAME=postgres;DB_PASSWORD=your_password;SERVER_PORT=8080;JWT_SECRET=your-secret-key;JWT_EXPIRATION=86400000
+   ```
+4. Apply and run
+
+**VS Code:**
+1. Create/edit `.vscode/launch.json`
+2. Add environment variables to the launch configuration
+
+#### Option B: Using Docker Compose (Automatically loads .env)
+
+```bash
+docker compose up --build -d
+```
+
+### 3. Build the Project
 
 Using Maven wrapper (recommended):
 ```bash
@@ -39,19 +80,42 @@ Or using system Maven:
 mvn clean install
 ```
 
-### 3. Run the Application
+### 4. Run the Application
 
-Using Maven wrapper:
+**Local (with IDE environment variables):**
 ```bash
 mvnw spring-boot:run
 ```
 
-Or using system Maven:
+**Docker:**
 ```bash
-mvn spring-boot:run
+docker compose up --build -d
 ```
 
-The application will start on **http://localhost:8080**
+The application will start on **http://localhost:8080** (or **http://localhost:8081** with Docker)
+
+## 📖 API Documentation
+
+### Swagger UI (OpenAPI)
+
+Once the application is running, visit the interactive API documentation:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+This provides:
+- ✅ All available endpoints
+- ✅ Request/response schemas
+- ✅ Test API calls directly from the browser
+- ✅ Authentication details
+
+### Alternative: OpenAPI JSON
+
+Access the raw OpenAPI spec:
+```
+http://localhost:8080/v3/api-docs
+```
 
 ## 🧪 Testing the Application
 
@@ -75,45 +139,47 @@ The application will start on **http://localhost:8080**
 curl http://localhost:8081/api/health
 ```
 
-## 🐳 Docker (Backend Only)
+## 🐳 Docker
 
-Run backend + PostgreSQL with Docker Compose:
+### Starting with Docker Compose
+
+To run the backend with PostgreSQL using Docker:
 
 ```bash
 cd backend
 docker compose up --build -d
 ```
 
-Check containers status:
+### Managing Containers
 
+Check container status:
 ```bash
 docker compose ps
 ```
 
-Check backend logs:
-
+View backend logs:
 ```bash
 docker compose logs backend --tail=200
 ```
 
-Health check:
-
+View database logs:
 ```bash
-curl http://localhost:8080/api/health
+docker compose logs postgres --tail=100
 ```
 
 Stop and remove containers:
-
 ```bash
 docker compose down
 ```
 
-### H2 Database Console
+Health check (when running on Docker):
+```bash
+curl http://localhost:8081/api/health
+```
 
-Access the H2 console for database inspection:
-- **URL**: http://localhost:8080/h2-console
-- **JDBC URL**: `jdbc:h2:mem:testdb`
-- **Username**: `sa`
+### Important: Environment Variables in Docker
+
+Docker Compose automatically loads environment variables from the `.env` file in the `backend/` directory. Make sure your `.env` file is properly configured before running `docker compose up`.
 - **Password**: (leave empty)
 
 ## 📁 Project Structure
