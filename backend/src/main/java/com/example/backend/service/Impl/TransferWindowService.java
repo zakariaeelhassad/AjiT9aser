@@ -1,5 +1,6 @@
 package com.example.backend.service.Impl;
 
+import com.example.backend.dto.game.TransferWindowStatusResponse;
 import com.example.backend.model.entity.Gameweek;
 import com.example.backend.repository.GameweekRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +21,13 @@ public class TransferWindowService implements com.example.backend.service.Transf
         private volatile long cacheLoadedAtMs = 0L;
         private static final long CACHE_TTL_MS = 30_000L;
 
-    public TransferWindowStatus getTransferWindowStatus() {
+        public TransferWindowStatusResponse getTransferWindowStatus() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
                 List<Gameweek> gameweeks = getGameweeks();
 
         if (gameweeks.isEmpty()) {
-            return new TransferWindowStatus(
+            return new TransferWindowStatusResponse(
                     now.toString(),
                     null,
                     null,
@@ -46,7 +47,7 @@ public class TransferWindowService implements com.example.backend.service.Transf
                     .filter(gw -> gw.getGameweekNumber() > active.getGameweekNumber())
                     .findFirst();
 
-            return new TransferWindowStatus(
+            return new TransferWindowStatusResponse(
                     now.toString(),
                     active.getGameweekNumber(),
                     next.map(Gameweek::getGameweekNumber).orElse(null),
@@ -73,7 +74,7 @@ public class TransferWindowService implements com.example.backend.service.Transf
                     : "Gameweek " + latestCompleted.get().getGameweekNumber() + " has finished. Gameweek "
                             + next.getGameweekNumber() + " will start soon.";
 
-            return new TransferWindowStatus(
+            return new TransferWindowStatusResponse(
                     now.toString(),
                     null,
                     next.getGameweekNumber(),
@@ -84,7 +85,7 @@ public class TransferWindowService implements com.example.backend.service.Transf
         }
 
         Gameweek last = gameweeks.get(gameweeks.size() - 1);
-        return new TransferWindowStatus(
+        return new TransferWindowStatusResponse(
                 now.toString(),
                 null,
                 null,
@@ -118,15 +119,6 @@ public class TransferWindowService implements com.example.backend.service.Transf
                 }
         }
 
-    public record TransferWindowStatus(
-            String currentDate,
-            Integer activeGameweek,
-            Integer nextGameweek,
-            String nextDeadline,
-            boolean transfersAllowed,
-            String phase,
-            String message) {
-    }
 }
 
 
