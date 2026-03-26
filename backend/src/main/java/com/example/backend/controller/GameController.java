@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.game.GameStateResponse;
 import com.example.backend.dto.game.LeaderboardEntryResponse;
+import com.example.backend.dto.game.TransferWindowStatusResponse;
 import com.example.backend.model.entity.UserTeam;
 import com.example.backend.repository.UserTeamRepository;
 import com.example.backend.service.GameEngineService;
@@ -28,13 +30,13 @@ public class GameController {
 
     @GetMapping("/state")
     @Operation(summary = "Get current game engine state")
-    public ResponseEntity<com.example.backend.service.Impl.GameEngineService.GameState> getState() {
+    public ResponseEntity<GameStateResponse> getState() {
         return ResponseEntity.ok(gameEngineService.getGameState());
     }
 
     @GetMapping("/transfer-window")
     @Operation(summary = "Get transfer window status based on backend date and DB gameweek dates")
-    public ResponseEntity<com.example.backend.service.Impl.TransferWindowService.TransferWindowStatus> getTransferWindowStatus() {
+    public ResponseEntity<TransferWindowStatusResponse> getTransferWindowStatus() {
         return ResponseEntity.ok(transferWindowService.getTransferWindowStatus());
     }
 
