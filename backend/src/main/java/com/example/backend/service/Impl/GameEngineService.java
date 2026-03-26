@@ -1,6 +1,7 @@
 package com.example.backend.service.Impl;
 
 import com.example.backend.service.Impl.DataInitializationService.*;
+import com.example.backend.dto.game.GameStateResponse;
 import com.example.backend.repository.GameweekRepository;
 import com.example.backend.repository.MatchRepository;
 import com.example.backend.model.entity.Match;
@@ -258,11 +259,11 @@ public class GameEngineService implements com.example.backend.service.GameEngine
         log.info("🔄 Game Engine RESET");
     }
 
-    public GameState getGameState() {
+    public GameStateResponse getGameState() {
         boolean isGameweekActive = calculateGameweekActive(currentGameweek.get());
 
         if (allMatches == null || currentMatchIndex.get() >= allMatches.size()) {
-            return new GameState(
+            return new GameStateResponse(
                     engineRunning,
                     matchInProgress,
                     isGameweekActive,
@@ -276,7 +277,7 @@ public class GameEngineService implements com.example.backend.service.GameEngine
         }
 
         MatchJsonDTO currentMatch = allMatches.get(currentMatchIndex.get());
-        return new GameState(
+        return new GameStateResponse(
                 engineRunning,
                 matchInProgress,
                 isGameweekActive,
@@ -289,9 +290,6 @@ public class GameEngineService implements com.example.backend.service.GameEngine
                 currentMatch.getAwayScore());
     }
 
-    /**
-     * Helper to compute true active status from DB matches
-     */
     private boolean calculateGameweekActive(int gameweekNum) {
         Optional<Gameweek> gwOpt = gameweekRepository.findByGameweekNumber(gameweekNum);
         if (gwOpt.isEmpty()) {
@@ -317,25 +315,8 @@ public class GameEngineService implements com.example.backend.service.GameEngine
         return false;
     }
 
-    /**
-     * Convenience check used by TeamManagementService to enforce the transfer
-     * window.
-     */
     public boolean isGameweekActive() {
         return calculateGameweekActive(currentGameweek.get());
-    }
-
-    public record GameState(
-            boolean engineRunning,
-            boolean matchInProgress,
-            boolean gameweekActive,
-            int currentGameweek,
-            int currentMatchIndex,
-            int currentMinute,
-            String homeTeam,
-            String awayTeam,
-            int homeScore,
-            int awayScore) {
     }
 }
 
