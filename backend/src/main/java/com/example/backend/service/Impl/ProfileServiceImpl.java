@@ -7,6 +7,7 @@ import com.example.backend.model.entity.User;
 import com.example.backend.model.entity.UserTeam;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserTeamRepository;
+import com.example.backend.service.ProfileService;
 import com.example.backend.security.JwtUtil;
 import com.example.backend.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class ProfileService implements com.example.backend.service.ProfileService {
+public class ProfileServiceImpl implements ProfileService {
 
     private static final int MAX_IMAGE_DATA_LENGTH = 4_500_000;
     private static final String IMAGE_API_PREFIX = "/api/profile/images/";
