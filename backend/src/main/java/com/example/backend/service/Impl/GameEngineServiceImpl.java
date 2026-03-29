@@ -1,6 +1,10 @@
 package com.example.backend.service.Impl;
 
-import com.example.backend.service.Impl.DataInitializationService.*;
+import com.example.backend.service.Impl.DataInitializationServiceImpl.*;
+import com.example.backend.service.CommentaryService;
+import com.example.backend.service.GameEngineService;
+import com.example.backend.service.ScoringService;
+import com.example.backend.service.SimulatedClockService;
 import com.example.backend.dto.game.GameStateResponse;
 import com.example.backend.repository.GameweekRepository;
 import com.example.backend.repository.MatchRepository;
@@ -25,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @EnableScheduling
 @RequiredArgsConstructor
 @Slf4j
-public class GameEngineService implements com.example.backend.service.GameEngineService {
+public class GameEngineServiceImpl implements GameEngineService {
 
     private final ScoringService scoringService;
     private final CommentaryService commentaryService;
