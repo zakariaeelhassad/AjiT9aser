@@ -34,6 +34,9 @@ import com.example.backend.dto.team.TeamLineupPlayerResponse;
 import com.example.backend.dto.team.TeamLineupResponse;
 import com.example.backend.model.entity.PlayerGameweekStats;
 import com.example.backend.model.entity.UserTeamGameweekPoints;
+import com.example.backend.service.TeamManagementService;
+import com.example.backend.service.ScoringService;
+import com.example.backend.service.TransferWindowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -55,7 +58,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TeamManagementService implements com.example.backend.service.TeamManagementService {
+public class TeamManagementServiceImpl implements TeamManagementService {
 
         private final UserTeamRepository userTeamRepository;
         private final PlayerRepository playerRepository;
@@ -368,7 +371,15 @@ public class TeamManagementService implements com.example.backend.service.TeamMa
                 TransferWindowStatusResponse status = transferWindowService.getTransferWindowStatus();
                 if (status.activeGameweek() == null && status.nextGameweek() != null) {
                         UserTeamGameweekLineup draftSnapshot = getOrCreateSnapshotForGameweek(userTeam, status.nextGameweek());
-                        return toLineupResponseFromSnapshot(userTeam, draftSnapshot);
+                        
+                        // FIX: Verify snapshot has players; fallback to current squad if empty
+                        if (draftSnapshot != null && draftSnapshot.getPlayers() != null && !draftSnapshot.getPlayers().isEmpty()) {
+                                return toLineupResponseFromSnapshot(userTeam, draftSnapshot);
+                        }
+                        
+                        // Fallback to current squad if snapshot is empty (safety net for data integrity issues)
+                        log.warn("Draft snapshot for gameweek {} is empty for team {}. Falling back to current squad.", 
+                                status.nextGameweek(), userTeam.getId());
                 }
 
                 return toLineupResponse(userTeam);
@@ -376,8 +387,7 @@ public class TeamManagementService implements com.example.backend.service.TeamMa
 
         @Transactional
         public TeamLineupResponse makeSubstitution(Long userId, Long starterPlayerId, Long benchPlayerId) {
-                ensureTransferWindowOpen();
-
+                // FIX: Validate input parameters BEFORE checking transfer window
                 if (starterPlayerId == null || benchPlayerId == null) {
                         throw new InvalidTransferException("Both starter and bench players are required.");
                 }
@@ -386,8 +396,16 @@ public class TeamManagementService implements com.example.backend.service.TeamMa
                         throw new InvalidTransferException("Starter and bench player must be different.");
                 }
 
-                UserTeam userTeam = getDetailedTeam(userId);
+                // Now check transfer window with better error messaging
                 TransferWindowStatusResponse status = transferWindowService.getTransferWindowStatus();
+                if (!status.transfersAllowed()) {
+                        String message = status.activeGameweek() != null 
+                                ? String.format("Substitutions are locked during Gameweek %d. Transfer window will open after gameweek completion.", status.activeGameweek())
+                                : "Transfer window is currently closed. Please try again later.";
+                        throw new InvalidTransferException(message);
+                }
+
+                UserTeam userTeam = getDetailedTeam(userId);
 
                 if (status.activeGameweek() == null && status.nextGameweek() != null) {
                         UserTeamGameweekLineup draftSnapshot = getOrCreateSnapshotForGameweek(userTeam, status.nextGameweek());
@@ -919,11 +937,18 @@ public class TeamManagementService implements com.example.backend.service.TeamMa
                                 .capturedAt(LocalDateTime.now())
                                 .build();
 
+                // FIX: Only fetch stats for gameweeks that have actually started (prevents premature points)
+                java.time.LocalDateTime nowUtc = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
+                boolean gameweekStarted = gameweek != null && !gameweek.getStartDate().isAfter(nowUtc);
+
                 int teamPoints = 0;
                 for (UserTeamPlayer tp : team.getTeamPlayers()) {
-                        int points = deduplicatedPoints(
+                        // Only calculate points if the gameweek has started
+                        int points = gameweekStarted
+                                ? deduplicatedPoints(
                                         statsRepository.findAllByPlayerIdAndGameweekNumber(tp.getPlayer().getId(), gameweekNumber),
-                                        java.util.Set.of());
+                                        java.util.Set.of())
+                                : 0;
 
                         UserTeamGameweekLineupPlayer row = UserTeamGameweekLineupPlayer.builder()
                                         .lineup(snapshot)
