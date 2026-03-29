@@ -3,13 +3,13 @@ package com.example.backend.service.Impl;
 import com.example.backend.model.entity.*;
 import com.example.backend.model.enums.Position;
 import com.example.backend.repository.*;
+import com.example.backend.service.DataInitializationService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class DataInitializationService implements com.example.backend.service.DataInitializationService, CommandLineRunner {
+public class DataInitializationServiceImpl implements DataInitializationService {
 
     private final PlayerRepository playerRepository;
     private final GameweekRepository gameweekRepository;
