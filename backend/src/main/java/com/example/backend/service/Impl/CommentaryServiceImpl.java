@@ -1,5 +1,6 @@
 package com.example.backend.service.Impl;
 
+import com.example.backend.service.CommentaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -7,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CommentaryService implements com.example.backend.service.CommentaryService {
+public class CommentaryServiceImpl implements CommentaryService {
 
     public String generateCommentary(String playerName, String eventType, int minute) {
         log.info("Generating commentary for: {} - {} at minute {}", playerName, eventType, minute);
