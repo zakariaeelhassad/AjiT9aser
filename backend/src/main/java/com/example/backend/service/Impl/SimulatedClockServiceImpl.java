@@ -1,11 +1,12 @@
 package com.example.backend.service.Impl;
 
+import com.example.backend.service.SimulatedClockService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
 @Service
-public class SimulatedClockService implements com.example.backend.service.SimulatedClockService {
+public class SimulatedClockServiceImpl implements SimulatedClockService {
 
     // Configuration
 
@@ -17,7 +18,7 @@ public class SimulatedClockService implements com.example.backend.service.Simula
 
     private final long anchorEpochSecond;
 
-    public SimulatedClockService() {
+    public SimulatedClockServiceImpl() {
         this.anchorEpochSecond = System.currentTimeMillis() / 1000L;
     }
 
