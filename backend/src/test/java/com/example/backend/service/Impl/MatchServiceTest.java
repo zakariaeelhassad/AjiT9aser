@@ -39,7 +39,7 @@ class MatchServiceTest {
     private MatchEventCacheService eventCache;
 
     @InjectMocks
-    private MatchService matchService;
+        private MatchServiceImpl matchService;
 
     @Test
     void getByGameweek_shouldReturnEmpty_whenGameweekNotFound() {
